@@ -11,11 +11,11 @@ const Footer = () => {
             <div className="flex items-center space-x-2 mb-4">
               <Star className="w-8 h-8 text-purple-400" />
               <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                TaroToo
+                Soulseer
               </span>
             </div>
             <p className="text-purple-200 mb-4 leading-relaxed">
-              Khám phá vận mệnh của bạn với dịch vụ bói bài Tarot chuyên nghiệp. 
+              Khám phá vận mệnh của bạn với dịch vụ Soulseer chuyên nghiệp. 
               Chúng tôi mang đến những dự đoán chính xác và lời khuyên hữu ích cho cuộc sống.
             </p>
             <div className="flex space-x-4">
@@ -53,7 +53,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-purple-400" />
-                <span className="text-purple-200">contact@tarotoo.com</span>
+                <span className="text-purple-200">contact@soulseer.com</span>
               </div>
               <div className="flex items-start space-x-2">
                 <MapPin className="w-4 h-4 text-purple-400 mt-1" />
@@ -65,7 +65,7 @@ const Footer = () => {
 
         <div className="border-t border-purple-500/20 mt-8 pt-8 text-center">
           <p className="text-purple-300">
-            © 2024 TaroToo. Tất cả quyền được bảo lưu. | 
+            © 2024 Soulseer. Tất cả quyền được bảo lưu. | 
             <a href="#privacy" className="hover:text-purple-200 ml-1">Chính sách bảo mật</a> | 
             <a href="#terms" className="hover:text-purple-200 ml-1">Điều khoản sử dụng</a>
           </p>

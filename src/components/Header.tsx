@@ -19,7 +19,7 @@ const Header = () => {
               </div>
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              TaroToo
+              Soulseer
             </span>
           </div>
 

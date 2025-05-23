@@ -41,11 +41,11 @@ const ServicesSection = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-glow">
             <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-              Dịch Vụ Bói Bài
+              Dịch Vụ Soulseer
             </span>
           </h2>
           <p className="text-lg text-purple-200 max-w-2xl mx-auto">
-            Chọn loại bói bài phù hợp với câu hỏi và tình huống của bạn
+            Chọn loại dịch vụ phù hợp với câu hỏi và tình huống của bạn
           </p>
         </div>
 

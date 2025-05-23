@@ -33,11 +33,11 @@ const HeroSection = () => {
           </h1>
           
           <h2 className="text-2xl md:text-4xl font-semibold mb-8 text-purple-200">
-            Với Bói Bài Tarot Huyền Bí
+            Với Soulseer Huyền Bí
           </h2>
 
           <p className="text-lg md:text-xl text-purple-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Hãy để những lá bài Tarot cổ xưa dẫn lối bạn khám phá tương lai, tình yêu, sự nghiệp và cuộc sống. 
+            Hãy để Soulseer dẫn lối bạn khám phá tương lai, tình yêu, sự nghiệp và cuộc sống. 
             Trải nghiệm sự huyền bí và tìm thấy câu trả lời cho những thắc mắc trong tâm hồn.
           </p>
 
