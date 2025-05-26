@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, Heart, Briefcase, DollarSign, Users, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -70,12 +71,16 @@ const TarotReading = () => {
   const [selectedDeck, setSelectedDeck] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [isReading, setIsReading] = useState(false);
+  const navigate = useNavigate();
 
   const handleStartReading = () => {
     if (selectedDeck && selectedTopic) {
       setIsReading(true);
-      // TODO: Navigate to reading result page
-      console.log('Starting reading with:', { selectedDeck, selectedTopic });
+      
+      // Navigate to result page with parameters
+      setTimeout(() => {
+        navigate(`/tarot-result?deck=${selectedDeck}&topic=${selectedTopic}`);
+      }, 1500);
     }
   };
 
