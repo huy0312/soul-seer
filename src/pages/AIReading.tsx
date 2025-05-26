@@ -28,35 +28,33 @@ const AIReading = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `Bạn là một thầy bói chuyên nghiệp và giàu kinh nghiệm tên Soulseer. Bạn có khả năng nhìn thấu tương lai và đưa ra lời khuyên sâu sắc về cuộc sống. Hãy trả lời câu hỏi của người dùng với giọng điệu huyền bí, ấm áp và đầy cảm hứng. Sử dụng tiếng Việt và đưa ra lời khuyên thiết thực, tích cực. Hãy bao gồm cả phân tích tâm lý và gợi ý hành động cụ thể.`
-            },
-            {
-              role: 'user',
-              content: question
-            }
-          ],
-          temperature: 0.8,
-          max_tokens: 1000,
+          contents: [{
+            parts: [{
+              text: `Bạn là một thầy bói chuyên nghiệp và giàu kinh nghiệm tên Soulseer. Bạn có khả năng nhìn thấu tương lai và đưa ra lời khuyên sâu sắc về cuộc sống. Hãy trả lời câu hỏi sau với giọng điệu huyền bí, ấm áp và đầy cảm hứng. Sử dụng tiếng Việt và đưa ra lời khuyên thiết thực, tích cực. Hãy bao gồm cả phân tích tâm lý và gợi ý hành động cụ thể.\n\nCâu hỏi: ${question}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.8,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to get AI response');
       }
 
       const data = await response.json();
-      const aiAnswer = data.choices[0].message.content;
+      const aiAnswer = data.candidates[0].content.parts[0].text;
 
       const newResponse: AIResponse = {
         question,
@@ -69,7 +67,7 @@ const AIReading = () => {
       setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error:', error);
-      alert('Có lỗi xảy ra khi kết nối với AI. Vui lòng kiểm tra API key và thử lại.');
+      alert('Có lỗi xảy ra khi kết nối với Gemini AI. Vui lòng kiểm tra API key và thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -94,12 +92,12 @@ const AIReading = () => {
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-glow">
               <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                Bói AI Thông Minh
+                Bói Gemini AI
               </span>
             </h1>
             
             <p className="text-lg md:text-xl text-purple-200 mb-8 max-w-2xl mx-auto">
-              Trò chuyện trực tiếp với AI Soulseer để nhận được lời khuyên và dự đoán cá nhân hóa về cuộc sống của bạn.
+              Trò chuyện trực tiếp với Gemini AI Soulseer để nhận được lời khuyên và dự đoán cá nhân hóa về cuộc sống của bạn.
             </p>
           </div>
         </section>
@@ -114,22 +112,30 @@ const AIReading = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <Bot className="w-6 h-6 mr-2" />
-                    Kết nối AI
+                    Kết nối Gemini AI
                   </CardTitle>
                   <CardDescription className="text-purple-200">
-                    Nhập OpenAI API key để bắt đầu trò chuyện với AI Soulseer
+                    Nhập Google Gemini API key để bắt đầu trò chuyện với AI Soulseer
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Input
                     type="password"
-                    placeholder="Nhập OpenAI API key của bạn..."
+                    placeholder="Nhập Google Gemini API key của bạn..."
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     className="bg-purple-900/50 border-purple-400 text-white placeholder-purple-300"
                   />
                   <p className="text-sm text-purple-300 mt-2">
-                    API key chỉ được lưu tạm thời trong phiên làm việc này và không được gửi đến server nào khác ngoài OpenAI.
+                    API key chỉ được lưu tạm thời trong phiên làm việc này. Bạn có thể lấy free API key tại{' '}
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-pink-300 hover:text-pink-200 underline"
+                    >
+                      Google AI Studio
+                    </a>
                   </p>
                 </CardContent>
               </Card>
@@ -140,7 +146,7 @@ const AIReading = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Sparkles className="w-6 h-6 mr-2" />
-                  Hỏi AI Soulseer
+                  Hỏi Gemini AI Soulseer
                 </CardTitle>
                 <CardDescription className="text-purple-200">
                   Đặt câu hỏi về tình yêu, sự nghiệp, tương lai, hoặc bất kỳ điều gì bạn quan tâm
@@ -163,7 +169,7 @@ const AIReading = () => {
                     {isLoading ? (
                       <>
                         <div className="animate-spin w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
-                        AI đang suy nghĩ...
+                        Gemini AI đang suy nghĩ...
                       </>
                     ) : (
                       <>
@@ -181,7 +187,7 @@ const AIReading = () => {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-center text-glow">
                   <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                    Lời Khuyên Từ AI Soulseer
+                    Lời Khuyên Từ Gemini AI Soulseer
                   </span>
                 </h2>
                 
@@ -197,7 +203,7 @@ const AIReading = () => {
                     <CardContent>
                       <h4 className="text-pink-300 font-semibold mb-3 flex items-center">
                         <Bot className="w-5 h-5 mr-2" />
-                        Lời khuyên từ AI Soulseer:
+                        Lời khuyên từ Gemini AI Soulseer:
                       </h4>
                       <div className="text-purple-100 leading-relaxed whitespace-pre-wrap">
                         {response.answer}
@@ -217,7 +223,7 @@ const AIReading = () => {
                 <CardHeader>
                   <CardTitle className="text-white">Gợi ý câu hỏi</CardTitle>
                   <CardDescription className="text-purple-200">
-                    Một số câu hỏi mẫu bạn có thể hỏi AI Soulseer
+                    Một số câu hỏi mẫu bạn có thể hỏi Gemini AI Soulseer
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
