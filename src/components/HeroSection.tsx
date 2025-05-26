@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
   return (
@@ -43,13 +44,15 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-8 py-4 rounded-full text-lg animate-glow transform hover:scale-105 transition-all duration-300"
-            >
-              <Star className="w-5 h-5 mr-2" />
-              Bói Bài Miễn Phí
-            </Button>
+            <Link to="/tarot-reading">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-8 py-4 rounded-full text-lg animate-glow transform hover:scale-105 transition-all duration-300"
+              >
+                <Star className="w-5 h-5 mr-2" />
+                Bói Bài Miễn Phí
+              </Button>
+            </Link>
             <Button 
               variant="outline" 
               size="lg"

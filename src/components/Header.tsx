@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, Star, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,7 +12,7 @@ const Header = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="relative">
               <Star className="w-8 h-8 text-purple-400 animate-glow" />
               <div className="absolute inset-0 animate-spin">
@@ -21,7 +22,7 @@ const Header = () => {
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Soulseer
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
@@ -41,9 +42,11 @@ const Header = () => {
 
           {/* CTA Button */}
           <div className="hidden md:flex">
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full animate-glow">
-              Bói ngay
-            </Button>
+            <Link to="/tarot-reading">
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full animate-glow">
+                Bói ngay
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -71,9 +74,11 @@ const Header = () => {
               <a href="#contact" className="text-white hover:text-purple-300 transition-colors">
                 Liên hệ
               </a>
-              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full w-fit">
-                Bói ngay
-              </Button>
+              <Link to="/tarot-reading">
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full w-fit">
+                  Bói ngay
+                </Button>
+              </Link>
             </nav>
           </div>
         )}
