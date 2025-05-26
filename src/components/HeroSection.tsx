@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { Star } from 'lucide-react';
+import { Star, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
@@ -26,6 +26,15 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 text-center relative z-10">
         <div className="max-w-4xl mx-auto">
+          {/* Logo */}
+          <div className="mb-8">
+            <img 
+              src="/lovable-uploads/f06dd398-3fe1-400c-b402-f4b361db1465.png" 
+              alt="Soulseer Logo" 
+              className="w-20 h-20 mx-auto animate-glow"
+            />
+          </div>
+
           {/* Main Title */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 text-glow">
             <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-purple-300 bg-clip-text text-transparent animate-pulse">
@@ -53,13 +62,16 @@ const HeroSection = () => {
                 Bói Bài Miễn Phí
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-2 border-purple-400 text-purple-300 hover:bg-purple-400 hover:text-purple-900 font-semibold px-8 py-4 rounded-full text-lg backdrop-blur-sm"
-            >
-              Tìm Hiểu Thêm
-            </Button>
+            <Link to="/ai-reading">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="border-2 border-purple-400 text-purple-300 hover:bg-purple-400 hover:text-purple-900 font-semibold px-8 py-4 rounded-full text-lg backdrop-blur-sm"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Bói AI Thông Minh
+              </Button>
+            </Link>
           </div>
 
           {/* Floating Tarot Cards Animation */}

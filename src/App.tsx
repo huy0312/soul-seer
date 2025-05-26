@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import TarotReading from "./pages/TarotReading";
 import TarotResult from "./pages/TarotResult";
+import AIReading from "./pages/AIReading";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/tarot-reading" element={<TarotReading />} />
           <Route path="/tarot-result" element={<TarotResult />} />
+          <Route path="/ai-reading" element={<AIReading />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
