@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +34,7 @@ const AIReading = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Bạn là một thầy bói chuyên nghiệp và giàu kinh nghiệm tên Soulseer. Bạn có khả năng nhìn thấu tương lai và đưa ra lời khuyên sâu sắc về cuộc sống. Hãy trả lời câu hỏi sau với giọng điệu huyền bí, ấm áp và đầy cảm hứng. Sử dụng tiếng Việt và đưa ra lời khuyên thiết thực, tích cực. Hãy bao gồm cả phân tích tâm lý và gợi ý hành động cụ thể.\n\nCâu hỏi: ${question}`
+              text: `Tôi là Soulseer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.\n\nCâu hỏi của bạn: ${question}`
             }]
           }],
           generationConfig: {
