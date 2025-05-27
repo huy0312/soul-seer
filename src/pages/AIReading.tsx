@@ -15,8 +15,8 @@ interface AIResponse {
 
 const AIReading = () => {
   const [question, setQuestion] = useState('');
-  // Fixed API key - hidden from user
-  const apiKey = 'AIzaSyBK5q8X7J9QZ3L4M8N2P6R1T5V9Y0W3E7U'; // You need to replace this with your actual Gemini API key
+  // Using your actual Gemini API key
+  const apiKey = 'AIzaSyB4DnZgHiY8nVMjwvVsn51_gN0ZCNB0-u8';
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState<AIResponse[]>([]);
 
