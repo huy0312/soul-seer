@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Bot, Send, Sparkles, Star } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -16,14 +15,14 @@ interface AIResponse {
 
 const AIReading = () => {
   const [question, setQuestion] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  // Fixed API key - hidden from user
+  const apiKey = 'AIzaSyBK5q8X7J9QZ3L4M8N2P6R1T5V9Y0W3E7U'; // You need to replace this with your actual Gemini API key
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState<AIResponse[]>([]);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || !apiKey.trim()) return;
+    if (!question.trim()) return;
 
     setIsLoading(true);
     
@@ -64,10 +63,9 @@ const AIReading = () => {
 
       setResponses(prev => [newResponse, ...prev]);
       setQuestion('');
-      setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error:', error);
-      alert('Có lỗi xảy ra khi kết nối với Gemini AI. Vui lòng kiểm tra API key và thử lại.');
+      alert('Có lỗi xảy ra khi kết nối với Gemini AI. Vui lòng thử lại sau.');
     } finally {
       setIsLoading(false);
     }
@@ -106,41 +104,6 @@ const AIReading = () => {
         <section className="py-16 bg-gradient-to-b from-purple-900 to-black">
           <div className="container mx-auto px-4 max-w-4xl">
             
-            {/* API Key Input */}
-            {showApiKeyInput && (
-              <Card className="mystic-card mb-8">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Bot className="w-6 h-6 mr-2" />
-                    Kết nối Gemini AI
-                  </CardTitle>
-                  <CardDescription className="text-purple-200">
-                    Nhập Google Gemini API key để bắt đầu trò chuyện với AI Soulseer
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    type="password"
-                    placeholder="Nhập Google Gemini API key của bạn..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="bg-purple-900/50 border-purple-400 text-white placeholder-purple-300"
-                  />
-                  <p className="text-sm text-purple-300 mt-2">
-                    API key chỉ được lưu tạm thời trong phiên làm việc này. Bạn có thể lấy free API key tại{' '}
-                    <a 
-                      href="https://aistudio.google.com/app/apikey" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-pink-300 hover:text-pink-200 underline"
-                    >
-                      Google AI Studio
-                    </a>
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Question Form */}
             <Card className="mystic-card mb-8">
               <CardHeader>
@@ -163,7 +126,7 @@ const AIReading = () => {
                   />
                   <Button
                     type="submit"
-                    disabled={!question.trim() || !apiKey.trim() || isLoading}
+                    disabled={!question.trim() || isLoading}
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-3 rounded-full w-full"
                   >
                     {isLoading ? (
