@@ -19,12 +19,12 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <img 
-              src="/lovable-uploads/f06dd398-3fe1-400c-b402-f4b361db1465.png" 
-              alt="Soulseer Logo" 
-              className="w-10 h-10 object-contain"
+              src="/lovable-uploads/f2a0fcc4-ee53-4dbf-b3ac-219dcb1f6745.png" 
+              alt="Soul Seer Logo" 
+              className="w-10 h-10 object-contain rounded-full"
             />
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-              Soulseer
+              Soul Seer
             </span>
           </Link>
 
