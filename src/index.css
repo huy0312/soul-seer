@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -84,14 +86,22 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .font-serif {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
 }
 
-/* Custom mystic styles */
+/* Custom mystic styles with new color palette */
 .sparkle {
   position: absolute;
   width: 4px;
   height: 4px;
-  background: white;
+  background: linear-gradient(45deg, #fbbf24, #06b6d4, #a855f7);
   border-radius: 50%;
   animation: sparkle 2s infinite;
 }
@@ -104,34 +114,30 @@
   height: 100%;
   pointer-events: none;
   background-image: 
-    radial-gradient(2px 2px at 20% 30%, white, transparent),
-    radial-gradient(2px 2px at 40% 70%, white, transparent),
-    radial-gradient(1px 1px at 90% 40%, white, transparent),
+    radial-gradient(2px 2px at 20% 30%, #fbbf24, transparent),
+    radial-gradient(2px 2px at 40% 70%, #06b6d4, transparent),
+    radial-gradient(1px 1px at 90% 40%, #a855f7, transparent),
     radial-gradient(1px 1px at 50% 50%, white, transparent);
   background-size: 200px 200px;
   animation: sparkle 3s infinite;
 }
 
 .mystic-card {
-  background: rgba(30, 27, 75, 0.8);
+  background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(168, 85, 247, 0.3);
   transition: all 0.3s ease;
 }
 
 .mystic-card:hover {
-  background: rgba(30, 27, 75, 0.9);
-  border-color: rgba(168, 85, 247, 0.6);
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(251, 191, 36, 0.6);
   transform: translateY(-5px);
   box-shadow: 0 20px 40px rgba(168, 85, 247, 0.2);
 }
 
-.hero-gradient {
-  background: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 50%, #0f0f23 100%);
-}
-
 .text-glow {
-  text-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(251, 191, 36, 0.4);
 }
 
 .animate-glow {
@@ -169,10 +175,10 @@
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(251, 191, 36, 0.3);
   }
   to {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 30px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 30px rgba(251, 191, 36, 0.6), 0 0 40px rgba(6, 182, 212, 0.4);
   }
 }
 
@@ -196,7 +202,40 @@
   }
 }
 
+/* Color palette utilities */
+.bg-soul-purple {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+}
+
+.bg-soul-amber {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.bg-soul-cyan {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.text-soul-purple {
+  color: #a855f7;
+}
+
+.text-soul-amber {
+  color: #fbbf24;
+}
+
+.text-soul-cyan {
+  color: #06b6d4;
+}
+
 /* Border colors */
-.border-gold {
+.border-soul-purple {
+  border-color: #a855f7;
+}
+
+.border-soul-amber {
   border-color: #fbbf24;
+}
+
+.border-soul-cyan {
+  border-color: #06b6d4;
 }
