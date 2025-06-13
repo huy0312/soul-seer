@@ -49,7 +49,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-purple-400" />
-                <span className="text-purple-200">+84 123 456 789</span>
+                <span className="text-purple-200">0862031203</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-purple-400" />
@@ -57,7 +57,7 @@ const Footer = () => {
               </div>
               <div className="flex items-start space-x-2">
                 <MapPin className="w-4 h-4 text-purple-400 mt-1" />
-                <span className="text-purple-200">123 Đường Huyền Bí, Quận 1, TP.HCM</span>
+                <span className="text-purple-200">Đại học FPT Hòa Lạc</span>
               </div>
             </div>
           </div>

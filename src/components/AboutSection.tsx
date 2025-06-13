@@ -1,6 +1,6 @@
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, Heart, Sparkles, Users } from 'lucide-react';
+import { Star, Heart, Sparkles, Users, Phone, MapPin } from 'lucide-react';
 
 const AboutSection = () => {
   return (
@@ -73,8 +73,26 @@ const AboutSection = () => {
             </Card>
           </div>
 
-          {/* Thống kê */}
+          {/* Thông tin liên hệ và thống kê */}
           <div className="space-y-8">
+            {/* Thông tin liên hệ */}
+            <Card className="bg-gradient-to-br from-purple-600/20 to-amber-600/20 border-purple-400/30 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-6 font-serif text-center">Liên Hệ Với Chúng Tôi</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Phone className="w-6 h-6 text-purple-400" />
+                    <span className="text-slate-300 font-sans">0862031203</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <MapPin className="w-6 h-6 text-purple-400 mt-1" />
+                    <span className="text-slate-300 font-sans">Đại học FPT Hòa Lạc</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Thống kê */}
             <Card className="bg-gradient-to-br from-purple-600/20 to-amber-600/20 border-purple-400/30 backdrop-blur-sm">
               <CardContent className="p-8 text-center">
                 <Users className="w-16 h-16 mx-auto mb-4 text-cyan-400" />
