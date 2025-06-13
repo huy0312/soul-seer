@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +35,7 @@ const AIReading = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Tôi là Soulseer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.\n\nCâu hỏi của bạn: ${question}`
+              text: `Tôi là Soul Seer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.\n\nCâu hỏi của bạn: ${question}`
             }]
           }],
           generationConfig: {
@@ -64,7 +65,7 @@ const AIReading = () => {
       setQuestion('');
     } catch (error) {
       console.error('Error:', error);
-      alert('Có lỗi xảy ra khi kết nối với Gemini AI. Vui lòng thử lại sau.');
+      alert('Có lỗi xảy ra khi kết nối với Soul Seer AI. Vui lòng thử lại sau.');
     } finally {
       setIsLoading(false);
     }
@@ -81,20 +82,20 @@ const AIReading = () => {
           <div className="container mx-auto px-4 text-center relative z-10">
             <div className="mb-8">
               <img 
-                src="/lovable-uploads/f06dd398-3fe1-400c-b402-f4b361db1465.png" 
-                alt="Soulseer Logo" 
-                className="w-16 h-16 mx-auto animate-glow"
+                src="/lovable-uploads/f2a0fcc4-ee53-4dbf-b3ac-219dcb1f6745.png" 
+                alt="Soul Seer Logo" 
+                className="w-16 h-16 mx-auto animate-glow rounded-full"
               />
             </div>
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-glow">
               <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                Bói Gemini AI
+                SOUL SEER AI
               </span>
             </h1>
             
             <p className="text-lg md:text-xl text-purple-200 mb-8 max-w-2xl mx-auto">
-              Trò chuyện trực tiếp với Gemini AI Soulseer để nhận được lời khuyên và dự đoán cá nhân hóa về cuộc sống của bạn.
+              Trò chuyện trực tiếp với Soul Seer AI để nhận được lời khuyên và dự đoán cá nhân hóa về cuộc sống của bạn.
             </p>
           </div>
         </section>
@@ -108,7 +109,7 @@ const AIReading = () => {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Sparkles className="w-6 h-6 mr-2" />
-                  Hỏi Gemini AI Soulseer
+                  Hỏi Soul Seer AI
                 </CardTitle>
                 <CardDescription className="text-purple-200">
                   Đặt câu hỏi về tình yêu, sự nghiệp, tương lai, hoặc bất kỳ điều gì bạn quan tâm
@@ -131,7 +132,7 @@ const AIReading = () => {
                     {isLoading ? (
                       <>
                         <div className="animate-spin w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
-                        Gemini AI đang suy nghĩ...
+                        Soul Seer AI đang suy nghĩ...
                       </>
                     ) : (
                       <>
@@ -149,7 +150,7 @@ const AIReading = () => {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-center text-glow">
                   <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                    Lời Khuyên Từ Gemini AI Soulseer
+                    Lời Khuyên Từ Soul Seer AI
                   </span>
                 </h2>
                 
@@ -165,7 +166,7 @@ const AIReading = () => {
                     <CardContent>
                       <h4 className="text-pink-300 font-semibold mb-3 flex items-center">
                         <Bot className="w-5 h-5 mr-2" />
-                        Lời khuyên từ Gemini AI Soulseer:
+                        Lời khuyên từ Soul Seer AI:
                       </h4>
                       <div className="text-purple-100 leading-relaxed whitespace-pre-wrap">
                         {response.answer}
@@ -185,7 +186,7 @@ const AIReading = () => {
                 <CardHeader>
                   <CardTitle className="text-white">Gợi ý câu hỏi</CardTitle>
                   <CardDescription className="text-purple-200">
-                    Một số câu hỏi mẫu bạn có thể hỏi Gemini AI Soulseer
+                    Một số câu hỏi mẫu bạn có thể hỏi Soul Seer AI
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
