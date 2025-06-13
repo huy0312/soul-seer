@@ -4,7 +4,6 @@ import HeroSection from '@/components/HeroSection';
 import ServicesSection from '@/components/ServicesSection';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import WeeklyHoroscope from '@/components/WeeklyHoroscope';
-import AboutSection from '@/components/AboutSection';
 import BookingSection from '@/components/BookingSection';
 import Footer from '@/components/Footer';
 import BackgroundMusic from '@/components/BackgroundMusic';
@@ -18,7 +17,6 @@ const Index = () => {
       <SubscriptionPlans />
       <WeeklyHoroscope />
       <BookingSection />
-      <AboutSection />
       <Footer />
       <BackgroundMusic />
     </div>
