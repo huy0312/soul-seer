@@ -3,19 +3,22 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, Send, Sparkles, Star } from 'lucide-react';
+import { Bot, Send, Sparkles, Star, Wand2 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { getRandomCards, TarotCardData } from '@/data/tarotData';
 
 interface AIResponse {
   question: string;
   answer: string;
+  tarotCards?: TarotCardData[];
   timestamp: Date;
+  type: 'general' | 'tarot';
 }
 
 const AIReading = () => {
   const [question, setQuestion] = useState('');
-  // Using your actual Gemini API key
+  const [readingMode, setReadingMode] = useState<'general' | 'tarot'>('general');
   const apiKey = 'AIzaSyB4DnZgHiY8nVMjwvVsn51_gN0ZCNB0-u8';
   const [isLoading, setIsLoading] = useState(false);
   const [responses, setResponses] = useState<AIResponse[]>([]);
@@ -27,6 +30,28 @@ const AIReading = () => {
     setIsLoading(true);
     
     try {
+      let prompt = '';
+      let selectedCards: TarotCardData[] = [];
+
+      if (readingMode === 'tarot') {
+        selectedCards = getRandomCards(3);
+        const cardDescriptions = selectedCards.map((card, index) => 
+          `Lá ${index + 1} (${['Quá khứ', 'Hiện tại', 'Tương lai'][index]}): ${card.name} - ${card.meaning}. Từ khóa: ${card.keywords.join(', ')}`
+        ).join('\n');
+
+        prompt = `Tôi là Soul Seer, một thầy bói Tarot có kinh nghiệm. Tôi đã rút 3 lá bài Smith-Waite cho câu hỏi của bạn:
+
+${cardDescriptions}
+
+Câu hỏi: "${question}"
+
+Tôi sẽ giải thích ý nghĩa của từng lá bài và liên kết chúng với câu hỏi của bạn. Tôi sẽ phân tích cách 3 lá bài này tương tác với nhau để đưa ra lời khuyên tổng thể. Trả lời bằng tiếng Việt một cách ấm áp và chi tiết.`;
+      } else {
+        prompt = `Tôi là Soul Seer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.
+
+Câu hỏi của bạn: ${question}`;
+      }
+
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
@@ -35,7 +60,7 @@ const AIReading = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Tôi là Soul Seer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.\n\nCâu hỏi của bạn: ${question}`
+              text: prompt
             }]
           }],
           generationConfig: {
@@ -58,7 +83,9 @@ const AIReading = () => {
       const newResponse: AIResponse = {
         question,
         answer: aiAnswer,
-        timestamp: new Date()
+        tarotCards: readingMode === 'tarot' ? selectedCards : undefined,
+        timestamp: new Date(),
+        type: readingMode
       };
 
       setResponses(prev => [newResponse, ...prev]);
@@ -104,21 +131,64 @@ const AIReading = () => {
         <section className="py-16 bg-gradient-to-b from-purple-900 to-black">
           <div className="container mx-auto px-4 max-w-4xl">
             
+            {/* Mode Selection */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-center mb-4 text-white">Chọn Chế Độ Tư Vấn</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <Card 
+                  className={`mystic-card cursor-pointer transition-all duration-300 ${
+                    readingMode === 'general' ? 'ring-2 ring-purple-400 bg-purple-800/50' : ''
+                  }`}
+                  onClick={() => setReadingMode('general')}
+                >
+                  <CardHeader className="text-center pb-3">
+                    <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+                    <CardTitle className="text-white text-lg">Tư Vấn Tổng Quát</CardTitle>
+                    <CardDescription className="text-purple-200 text-sm">
+                      AI phân tích và đưa ra lời khuyên dựa trên năng lượng
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <Card 
+                  className={`mystic-card cursor-pointer transition-all duration-300 ${
+                    readingMode === 'tarot' ? 'ring-2 ring-pink-400 bg-pink-800/50' : ''
+                  }`}
+                  onClick={() => setReadingMode('tarot')}
+                >
+                  <CardHeader className="text-center pb-3">
+                    <Wand2 className="w-8 h-8 mx-auto mb-2 text-pink-400" />
+                    <CardTitle className="text-white text-lg">Bói Bài Tarot AI</CardTitle>
+                    <CardDescription className="text-purple-200 text-sm">
+                      AI rút 3 lá bài Smith-Waite và giải nghĩa
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </div>
+            </div>
+
             {/* Question Form */}
             <Card className="mystic-card mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
-                  <Sparkles className="w-6 h-6 mr-2" />
-                  Hỏi Soul Seer AI
+                  {readingMode === 'tarot' ? <Wand2 className="w-6 h-6 mr-2" /> : <Sparkles className="w-6 h-6 mr-2" />}
+                  {readingMode === 'tarot' ? 'Hỏi Soul Seer AI + Tarot' : 'Hỏi Soul Seer AI'}
                 </CardTitle>
                 <CardDescription className="text-purple-200">
-                  Đặt câu hỏi về tình yêu, sự nghiệp, tương lai, hoặc bất kỳ điều gì bạn quan tâm
+                  {readingMode === 'tarot' 
+                    ? 'Đặt câu hỏi và AI sẽ rút 3 lá bài Smith-Waite để trả lời bạn'
+                    : 'Đặt câu hỏi về tình yêu, sự nghiệp, tương lai, hoặc bất kỳ điều gì bạn quan tâm'
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Textarea
-                    placeholder="Ví dụ: Tôi nên làm gì để cải thiện mối quan hệ hiện tại? Sự nghiệp của tôi sẽ ra sao trong năm tới?"
+                    placeholder={
+                      readingMode === 'tarot' 
+                        ? "Ví dụ: Tình yêu của tôi sẽ như thế nào? Tôi có nên thay đổi công việc không?"
+                        : "Ví dụ: Tôi nên làm gì để cải thiện mối quan hệ hiện tại? Sự nghiệp của tôi sẽ ra sao trong năm tới?"
+                    }
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     className="bg-purple-900/50 border-purple-400 text-white placeholder-purple-300 min-h-24"
@@ -132,12 +202,12 @@ const AIReading = () => {
                     {isLoading ? (
                       <>
                         <div className="animate-spin w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
-                        Soul Seer AI đang suy nghĩ...
+                        {readingMode === 'tarot' ? 'AI đang rút bài...' : 'Soul Seer AI đang suy nghĩ...'}
                       </>
                     ) : (
                       <>
                         <Send className="w-5 h-5 mr-2" />
-                        Gửi câu hỏi
+                        {readingMode === 'tarot' ? 'Rút Bài & Hỏi' : 'Gửi câu hỏi'}
                       </>
                     )}
                   </Button>
@@ -160,13 +230,41 @@ const AIReading = () => {
                       <CardTitle className="text-purple-300 flex items-center text-lg">
                         <Star className="w-5 h-5 mr-2" />
                         Câu hỏi của bạn
+                        {response.type === 'tarot' && (
+                          <span className="ml-2 px-2 py-1 bg-pink-600/30 rounded-full text-xs border border-pink-400/30">
+                            + Tarot
+                          </span>
+                        )}
                       </CardTitle>
                       <p className="text-purple-100">{response.question}</p>
                     </CardHeader>
                     <CardContent>
+                      {/* Show Tarot Cards if this is a tarot reading */}
+                      {response.tarotCards && (
+                        <div className="mb-6">
+                          <h4 className="text-pink-300 font-semibold mb-3 flex items-center">
+                            <Wand2 className="w-5 h-5 mr-2" />
+                            3 Lá Bài Smith-Waite Được Chọn:
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            {response.tarotCards.map((card, cardIndex) => (
+                              <div key={card.id} className="text-center">
+                                <div className="bg-gradient-to-br from-yellow-300 via-yellow-500 to-amber-600 rounded-lg w-16 h-24 mx-auto mb-2 flex items-center justify-center text-2xl font-bold text-purple-900 shadow-lg border-2 border-yellow-400">
+                                  {card.image}
+                                </div>
+                                <h5 className="text-purple-200 font-semibold text-sm">{card.name}</h5>
+                                <p className="text-purple-300 text-xs">
+                                  {['Quá Khứ', 'Hiện Tại', 'Tương Lai'][cardIndex]}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <h4 className="text-pink-300 font-semibold mb-3 flex items-center">
                         <Bot className="w-5 h-5 mr-2" />
-                        Lời khuyên từ Soul Seer AI:
+                        {response.type === 'tarot' ? 'Giải nghĩa Tarot từ Soul Seer AI:' : 'Lời khuyên từ Soul Seer AI:'}
                       </h4>
                       <div className="text-purple-100 leading-relaxed whitespace-pre-wrap">
                         {response.answer}
@@ -191,13 +289,20 @@ const AIReading = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      "Tình yêu của tôi sẽ như thế nào trong năm tới?",
+                    {readingMode === 'tarot' ? [
+                      "Tình yêu của tôi sẽ như thế nào trong 3 tháng tới?",
                       "Tôi có nên thay đổi công việc hiện tại không?",
-                      "Làm sao để cải thiện mối quan hệ với gia đình?",
+                      "Điều gì đang cản trở sự phát triển của tôi?",
+                      "Làm sao để cải thiện mối quan hệ với người yêu?",
+                      "Con đường nào sẽ mang lại thành công cho tôi?",
+                      "Tôi cần chuẩn bị gì cho tương lai?"
+                    ] : [
+                      "Tình yêu của tôi sẽ như thế nào trong năm tới?",
+                      "Tôi có nên đầu tư vào dự án này không?",
+                      "Làm sao để vượt qua khó khăn hiện tại?",
                       "Con đường nào phù hợp nhất với tôi?",
-                      "Tôi nên đầu tư vào lĩnh vực gì?",
-                      "Làm thế nào để vượt qua khó khăn hiện tại?"
+                      "Làm thế nào để cải thiện mối quan hệ gia đình?",
+                      "Tôi nên tập trung vào điều gì trong thời gian tới?"
                     ].map((sampleQ, idx) => (
                       <Button
                         key={idx}

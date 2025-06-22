@@ -3,20 +3,24 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, RotateCcw, Star, Heart, Eye } from 'lucide-react';
+import { ArrowLeft, Sparkles, RotateCcw, Star, Heart, Eye, Crown, Gift } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TarotCard from '@/components/TarotCard';
-import { getRandomCards, getTopicSpecificInterpretation, TarotCardData } from '@/data/tarotData';
+import { getRandomCards, getTopicSpecificInterpretation, TarotCardData, getAllCards } from '@/data/tarotData';
 
 const TarotResult = () => {
   const [searchParams] = useSearchParams();
-  const deck = searchParams.get('deck');
+  const plan = searchParams.get('plan') || 'free';
   const topic = searchParams.get('topic');
+  const cardBack = searchParams.get('cardBack');
   
   const [cards, setCards] = useState<TarotCardData[]>([]);
   const [revealedCards, setRevealedCards] = useState<boolean[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCardSelection, setShowCardSelection] = useState(false);
+  const [allCards, setAllCards] = useState<TarotCardData[]>([]);
+  const [selectedCardIndices, setSelectedCardIndices] = useState<number[]>([]);
 
   const topicNames: Record<string, string> = {
     'love': 'Tình Yêu & Tình Cảm',
@@ -26,10 +30,11 @@ const TarotResult = () => {
     'general': 'Tổng Quan Cuộc Sống'
   };
 
-  const deckNames: Record<string, string> = {
-    'classic': 'Bộ Bài Tarot Cổ Điển',
-    'rider-waite': 'Rider-Waite Tarot',
-    'mystical': 'Bộ Bài Huyền Bí'
+  const cardBackNames: Record<string, string> = {
+    'mystical': 'Huyền Bí 🌙',
+    'celestial': 'Thiên Thể ⭐',
+    'classic': 'Cổ Điển 🔮',
+    'default': 'Mặc Định'
   };
 
   const cardPositions = ['Quá Khứ', 'Hiện Tại', 'Tương Lai'];
@@ -41,14 +46,36 @@ const TarotResult = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const selectedCards = getRandomCards(3);
-      setCards(selectedCards);
-      setRevealedCards(new Array(selectedCards.length).fill(false));
-      setIsLoading(false);
+      if (plan === 'premium') {
+        // For premium, show card selection interface
+        const allAvailableCards = getAllCards();
+        setAllCards(allAvailableCards);
+        setShowCardSelection(true);
+        setIsLoading(false);
+      } else {
+        // For free, auto-select cards
+        const selectedCards = getRandomCards(3);
+        setCards(selectedCards);
+        setRevealedCards(new Array(selectedCards.length).fill(false));
+        setIsLoading(false);
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [plan]);
+
+  const handleCardSelect = (cardIndex: number) => {
+    if (selectedCardIndices.length < 3 && !selectedCardIndices.includes(cardIndex)) {
+      setSelectedCardIndices(prev => [...prev, cardIndex]);
+    }
+  };
+
+  const handleConfirmSelection = () => {
+    const selectedCards = selectedCardIndices.map(index => allCards[index]);
+    setCards(selectedCards);
+    setRevealedCards(new Array(selectedCards.length).fill(false));
+    setShowCardSelection(false);
+  };
 
   const handleRevealCard = (index: number) => {
     setRevealedCards(prev => {
@@ -61,12 +88,19 @@ const TarotResult = () => {
   const handleNewReading = () => {
     setIsLoading(true);
     setRevealedCards([]);
+    setShowCardSelection(false);
+    setSelectedCardIndices([]);
     
     setTimeout(() => {
-      const selectedCards = getRandomCards(3);
-      setCards(selectedCards);
-      setRevealedCards(new Array(selectedCards.length).fill(false));
-      setIsLoading(false);
+      if (plan === 'premium') {
+        setShowCardSelection(true);
+        setIsLoading(false);
+      } else {
+        const selectedCards = getRandomCards(3);
+        setCards(selectedCards);
+        setRevealedCards(new Array(selectedCards.length).fill(false));
+        setIsLoading(false);
+      }
     }, 1500);
   };
 
@@ -84,7 +118,7 @@ const TarotResult = () => {
     return readings[topic] || readings['general'];
   };
 
-  if (!deck || !topic) {
+  if (!topic) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -121,13 +155,23 @@ const TarotResult = () => {
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-glow">
               <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                Kết Quả Bói Bài
+                {plan === 'premium' ? 'Premium ' : ''}Kết Quả Bói Bài
               </span>
             </h1>
             
             <div className="text-lg md:text-xl text-purple-200 mb-8 max-w-2xl mx-auto">
-              <p className="mb-2">Bộ bài: <span className="text-white font-semibold">{deckNames[deck]}</span></p>
-              <p>Chủ đề: <span className="text-white font-semibold">{topicNames[topic]}</span></p>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <p className="flex items-center">
+                  {plan === 'premium' ? <Crown className="w-5 h-5 mr-2 text-amber-400" /> : <Gift className="w-5 h-5 mr-2 text-blue-400" />}
+                  Gói: <span className="text-white font-semibold ml-1">
+                    {plan === 'premium' ? 'Premium' : 'Miễn Phí'}
+                  </span>
+                </p>
+                <p>Chủ đề: <span className="text-white font-semibold">{topicNames[topic]}</span></p>
+                {plan === 'premium' && cardBack && cardBack !== 'default' && (
+                  <p>Mặt lưng: <span className="text-white font-semibold">{cardBackNames[cardBack]}</span></p>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -138,15 +182,68 @@ const TarotResult = () => {
             <div className="container mx-auto px-4 text-center">
               <div className="animate-spin text-6xl mb-8">🔮</div>
               <h2 className="text-2xl font-bold text-glow mb-4">
-                Đang kết nối với vũ trụ...
+                {plan === 'premium' ? 'Chuẩn bị 78 lá bài Smith-Waite...' : 'Đang kết nối với vũ trụ...'}
               </h2>
-              <p className="text-purple-200">Các lá bài đang được chọn dành riêng cho bạn</p>
+              <p className="text-purple-200">
+                {plan === 'premium' ? 'Bạn sẽ được chọn 3 lá từ bộ bài đầy đủ' : 'Các lá bài đang được chọn dành riêng cho bạn'}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* Card Selection for Premium */}
+        {showCardSelection && plan === 'premium' && (
+          <section className="py-16 bg-gradient-to-b from-purple-900 to-black">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-8 text-glow">
+                <span className="bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
+                  Chọn 3 Lá Bài Từ 78 Lá Smith-Waite
+                </span>
+              </h2>
+              
+              <div className="text-center mb-8">
+                <p className="text-purple-200 mb-4">
+                  Đã chọn: <span className="text-white font-bold">{selectedCardIndices.length}/3</span> lá bài
+                </p>
+                {selectedCardIndices.length === 3 && (
+                  <Button
+                    onClick={handleConfirmSelection}
+                    className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white font-bold px-8 py-3 rounded-full"
+                  >
+                    <Crown className="w-5 h-5 mr-2" />
+                    Xác Nhận Lựa Chọn
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-6 md:grid-cols-10 lg:grid-cols-13 gap-2 max-w-7xl mx-auto">
+                {allCards.map((card, index) => (
+                  <div
+                    key={card.id}
+                    className={`relative cursor-pointer transition-all duration-300 ${
+                      selectedCardIndices.includes(index)
+                        ? 'ring-2 ring-amber-400 transform scale-105'
+                        : 'hover:transform hover:scale-110'
+                    } ${selectedCardIndices.length >= 3 && !selectedCardIndices.includes(index) ? 'opacity-50' : ''}`}
+                    onClick={() => handleCardSelect(index)}
+                  >
+                    <div className="aspect-[2/3] bg-gradient-to-br from-purple-600 via-pink-500 to-purple-800 rounded-lg flex items-center justify-center border-2 border-purple-400 text-2xl font-bold text-white shadow-lg">
+                      {cardBackNames[cardBack as string]?.split(' ')[1] || '🔮'}
+                    </div>
+                    {selectedCardIndices.includes(index) && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {selectedCardIndices.indexOf(index) + 1}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {/* Cards Section */}
-        {!isLoading && (
+        {!isLoading && !showCardSelection && (
           <section className="py-16 bg-gradient-to-b from-purple-900 to-black">
             <div className="container mx-auto px-4">
               
@@ -155,7 +252,7 @@ const TarotResult = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center justify-center">
                     <Eye className="w-6 h-6 mr-2" />
-                    Cách Đọc Bài Tarot
+                    Cách Đọc Bài Tarot Smith-Waite
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -172,7 +269,7 @@ const TarotResult = () => {
 
               <h2 className="text-3xl font-bold text-center mb-12 text-glow">
                 <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                  Ba Lá Bài Của Bạn
+                  {plan === 'premium' ? 'Ba Lá Bài Bạn Đã Chọn' : 'Ba Lá Bài Của Bạn'}
                 </span>
               </h2>
               
@@ -243,11 +340,11 @@ const TarotResult = () => {
                         {getOverallReading()}
                       </p>
                       <div className="bg-gradient-to-r from-purple-800/30 to-pink-800/30 p-4 rounded-lg border border-purple-400/20">
-                        <h4 className="text-purple-300 font-semibold mb-2">Lời khuyên từ Soulseer:</h4>
+                        <h4 className="text-purple-300 font-semibold mb-2">Lời khuyên từ Soul Seer:</h4>
                         <p className="text-purple-100">
-                          Nhớ rằng, các lá bài Tarot chỉ là công cụ để phản ánh năng lượng hiện tại và những khả năng có thể xảy ra. 
-                          Tương lai luôn nằm trong tay bạn, và những quyết định bạn đưa ra hôm nay sẽ tạo nên ngày mai. 
-                          Hãy sử dụng những thông điệp này như một nguồn cảm hứng để tạo ra cuộc sống mà bạn mong muốn.
+                          Bộ bài Smith-Waite đã mang đến những thông điệp quý giá cho bạn. 
+                          Hãy sử dụng những hiểu biết này như một la bàn để định hướng cuộc sống. 
+                          Nhớ rằng, tương lai luôn nằm trong tay bạn và những quyết định hôm nay sẽ tạo nên ngày mai tươi sáng.
                         </p>
                       </div>
                     </CardContent>
@@ -269,7 +366,7 @@ const TarotResult = () => {
                         className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white px-8 py-3 rounded-full"
                       >
                         <Sparkles className="w-5 h-5 mr-2" />
-                        Chọn Chủ Đề Khác
+                        Chọn Gói Khác
                       </Button>
                     </Link>
 
