@@ -7,6 +7,7 @@ import WeeklyHoroscope from '@/components/WeeklyHoroscope';
 import BookingSection from '@/components/BookingSection';
 import Footer from '@/components/Footer';
 import BackgroundMusic from '@/components/BackgroundMusic';
+import AdminStats from '@/components/AdminStats';
 
 const Index = () => {
   return (
@@ -17,6 +18,7 @@ const Index = () => {
       <SubscriptionPlans />
       <WeeklyHoroscope />
       <BookingSection />
+      <AdminStats />
       <Footer />
       <BackgroundMusic />
     </div>
