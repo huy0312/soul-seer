@@ -29,7 +29,7 @@ const HeroSection = () => {
           {/* Logo */}
           <div className="mb-8">
             <img 
-              src="/lovable-uploads/f2a0fcc4-ee53-4dbf-b3ac-219dcb1f6745.png" 
+              src="/lovable-uploads/85a43226-d006-4c26-a9dc-04ed9ba2c96c.png" 
               alt="Soul Seer Logo" 
               className="w-24 h-24 mx-auto animate-glow rounded-full"
             />
