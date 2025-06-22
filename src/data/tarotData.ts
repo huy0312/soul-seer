@@ -1,4 +1,3 @@
-
 export interface TarotCardData {
   id: string;
   name: string;
@@ -786,6 +785,10 @@ export const allCards = [...majorArcana, ...minorArcana];
 export const getRandomCards = (count: number): TarotCardData[] => {
   const shuffled = [...allCards].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
+};
+
+export const getAllCards = (): TarotCardData[] => {
+  return allCards;
 };
 
 export const getTopicSpecificInterpretation = (card: TarotCardData, topic: string): string => {

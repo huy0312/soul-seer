@@ -54,3 +54,77 @@ const plans = [
     popular: false
   }
 ];
+
+const SubscriptionPlans = () => {
+  return (
+    <section className="py-20 bg-gradient-to-b from-purple-900 to-black">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-glow">
+            <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+              Chọn Gói Dịch Vụ
+            </span>
+          </h2>
+          <p className="text-xl text-purple-200 max-w-3xl mx-auto">
+            Khám phá vận mệnh với bộ bài Smith-Waite cổ điển
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {plans.map((plan, index) => {
+            const IconComponent = plan.icon;
+            return (
+              <Card 
+                key={index}
+                className={`mystic-card relative overflow-hidden ${
+                  plan.popular ? 'ring-2 ring-purple-400 transform scale-105' : ''
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 text-sm font-semibold">
+                    Phổ Biến
+                  </div>
+                )}
+                
+                <CardHeader className="text-center pb-4">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r ${plan.color} flex items-center justify-center`}>
+                    <IconComponent className="w-8 h-8 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-2xl font-bold mb-2">
+                    {plan.title}
+                  </CardTitle>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {plan.price}
+                    <span className="text-lg text-purple-300 font-normal">{plan.period}</span>
+                  </div>
+                  <CardDescription className="text-purple-200">
+                    {plan.description}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center text-purple-100">
+                        <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${plan.color} mr-3 flex-shrink-0`}></div>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button 
+                    className={`w-full mt-6 bg-gradient-to-r ${plan.color} hover:opacity-90 text-white font-semibold py-3 rounded-full transition-all duration-300 animate-glow`}
+                  >
+                    {plan.title === "AI Chat" ? "Trải Nghiệm Ngay" : "Chọn Gói Này"}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default SubscriptionPlans;
