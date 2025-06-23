@@ -1,9 +1,93 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Calendar, Clock, MapPin, User, Phone } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+
+const bookingSchema = z.object({
+  fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
+  phone: z.string().min(10, 'Số điện thoại không hợp lệ'),
+  preferredDate: z.string().min(1, 'Vui lòng chọn ngày'),
+  notes: z.string().optional(),
+});
+
+type BookingFormData = z.infer<typeof bookingSchema>;
 
 const BookingSection = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      fullName: '',
+      phone: '',
+      preferredDate: '',
+      notes: '',
+    },
+  });
+
+  const onSubmit = async (data: BookingFormData) => {
+    try {
+      // Lưu booking vào database
+      const { data: booking, error } = await supabase
+        .from('bookings')
+        .insert({
+          full_name: data.fullName,
+          phone: data.phone,
+          preferred_date: data.preferredDate,
+          notes: data.notes || '',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Gửi thông tin lên Facebook fanpage
+      try {
+        await fetch('/api/send-to-facebook', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            fullName: data.fullName,
+            phone: data.phone,
+            preferredDate: data.preferredDate,
+            notes: data.notes || '',
+          }),
+        });
+      } catch (fbError) {
+        console.error('Facebook integration error:', fbError);
+        // Không block việc đặt lịch nếu Facebook API lỗi
+      }
+
+      toast({
+        title: 'Đặt lịch thành công!',
+        description: 'Chúng tôi sẽ liên hệ xác nhận trong 24h',
+      });
+
+      // Chuyển đến trang xác nhận
+      navigate(`/booking-confirmation/${booking.id}`);
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast({
+        title: 'Lỗi đặt lịch',
+        description: 'Có lỗi xảy ra, vui lòng thử lại sau',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <section id="booking" className="py-20 bg-gradient-to-b from-purple-900 to-slate-900 relative">
       <div className="container mx-auto px-4">
@@ -65,45 +149,96 @@ const BookingSection = () => {
                   Điền thông tin để đặt lịch với Tarot Reader
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2 font-sans">Họ tên</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2 bg-slate-700/50 border border-purple-400/30 rounded-lg text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none font-sans"
-                    placeholder="Nhập họ tên của bạn"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2 font-sans">Số điện thoại</label>
-                  <input 
-                    type="tel" 
-                    className="w-full px-4 py-2 bg-slate-700/50 border border-purple-400/30 rounded-lg text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none font-sans"
-                    placeholder="Số điện thoại liên hệ"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2 font-sans">Ngày mong muốn</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-2 bg-slate-700/50 border border-purple-400/30 rounded-lg text-white focus:border-purple-400 focus:outline-none font-sans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2 font-sans">Ghi chú</label>
-                  <textarea 
-                    className="w-full px-4 py-2 bg-slate-700/50 border border-purple-400/30 rounded-lg text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none font-sans"
-                    rows={3}
-                    placeholder="Câu hỏi hoặc yêu cầu đặc biệt..."
-                  />
-                </div>
-                <Button className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-bold py-3 rounded-full transition-all duration-300 font-sans">
-                  <Phone className="w-5 h-5 mr-2" />
-                  Đặt Lịch Ngay
-                </Button>
-                <p className="text-xs text-slate-400 text-center font-sans">
-                  Chúng tôi sẽ liên hệ xác nhận lịch hẹn trong 24h
-                </p>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300 font-sans">Họ tên</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Nhập họ tên của bạn"
+                              className="bg-slate-700/50 border-purple-400/30 text-white placeholder-slate-400 focus:border-purple-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300 font-sans">Số điện thoại</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Số điện thoại liên hệ"
+                              className="bg-slate-700/50 border-purple-400/30 text-white placeholder-slate-400 focus:border-purple-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="preferredDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300 font-sans">Ngày mong muốn</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date"
+                              className="bg-slate-700/50 border-purple-400/30 text-white focus:border-purple-400"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300 font-sans">Ghi chú</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Câu hỏi hoặc yêu cầu đặc biệt..."
+                              className="bg-slate-700/50 border-purple-400/30 text-white placeholder-slate-400 focus:border-purple-400"
+                              rows={3}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-bold py-3 rounded-full transition-all duration-300 font-sans"
+                      disabled={form.formState.isSubmitting}
+                    >
+                      <Phone className="w-5 h-5 mr-2" />
+                      {form.formState.isSubmitting ? 'Đang đặt lịch...' : 'Đặt Lịch Ngay'}
+                    </Button>
+                    
+                    <p className="text-xs text-slate-400 text-center font-sans">
+                      Chúng tôi sẽ liên hệ xác nhận lịch hẹn trong 24h
+                    </p>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </div>

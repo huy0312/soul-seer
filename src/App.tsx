@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import TarotReading from "./pages/TarotReading";
 import TarotResult from "./pages/TarotResult";
 import AIReading from "./pages/AIReading";
+import BookingConfirmation from "./pages/BookingConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/tarot-reading" element={<TarotReading />} />
           <Route path="/tarot-result" element={<TarotResult />} />
           <Route path="/ai-reading" element={<AIReading />} />
+          <Route path="/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
