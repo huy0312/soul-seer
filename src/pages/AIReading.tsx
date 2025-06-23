@@ -109,7 +109,7 @@ Câu hỏi của bạn: ${question}`;
           <div className="container mx-auto px-4 text-center relative z-10">
             <div className="mb-8">
               <img 
-                src="/lovable-uploads/f2a0fcc4-ee53-4dbf-b3ac-219dcb1f6745.png" 
+                src="/lovable-uploads/Logo.png" 
                 alt="Soul Seer Logo" 
                 className="w-16 h-16 mx-auto animate-glow rounded-full"
               />
