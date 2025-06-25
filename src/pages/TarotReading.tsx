@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Heart, Briefcase, DollarSign, Users, Sparkles, Lock, Gift } from 'lucide-react';
+import { Star, Heart, Briefcase, DollarSign, Users, Sparkles, Lock, Gift, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { usePremium } from '@/hooks/usePremium';
 
 const cardBacks = [
   {
@@ -74,6 +73,7 @@ const TarotReading = () => {
   const [freeUsageCount, setFreeUsageCount] = useState(0);
   const [isReading, setIsReading] = useState(false);
   const navigate = useNavigate();
+  const { isPremium } = usePremium();
 
   // Load free usage count from localStorage
   useEffect(() => {
@@ -81,7 +81,12 @@ const TarotReading = () => {
     if (savedCount) {
       setFreeUsageCount(parseInt(savedCount));
     }
-  }, []);
+    
+    // Auto-select premium if user has premium
+    if (isPremium) {
+      setSelectedPlan('premium');
+    }
+  }, [isPremium]);
 
   const canUseFree = freeUsageCount < 2;
 
@@ -89,7 +94,13 @@ const TarotReading = () => {
     if (!selectedTopic) return;
 
     if (selectedPlan === 'free' && !canUseFree) {
-      alert('Bạn đã hết lượt bói miễn phí! Vui lòng chọn gói Premium hoặc thử lại vào ngày mai.');
+      alert('Bạn đã hết lượt bói miễn phí! Vui lòng nâng cấp Premium hoặc thử lại vào ngày mai.');
+      return;
+    }
+
+    if (selectedPlan === 'premium' && !isPremium) {
+      // Redirect to payment
+      navigate('/payment?plan=premium&amount=30000');
       return;
     }
 
@@ -151,8 +162,8 @@ const TarotReading = () => {
                   <Card 
                     className={`mystic-card cursor-pointer transition-all duration-300 ${
                       selectedPlan === 'free' ? 'ring-2 ring-blue-400 bg-blue-800/30' : ''
-                    }`}
-                    onClick={() => setSelectedPlan('free')}
+                    } ${!canUseFree ? 'opacity-60' : ''}`}
+                    onClick={() => !isPremium && setSelectedPlan('free')}
                   >
                     <CardHeader className="text-center">
                       <div className="text-4xl mb-4">🆓</div>
@@ -187,17 +198,26 @@ const TarotReading = () => {
                     }`}
                     onClick={() => setSelectedPlan('premium')}
                   >
-                    <div className="absolute -top-3 right-4">
-                      <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold flex items-center">
-                        <Gift className="w-3 h-3 mr-1" />
-                        DEMO
-                      </span>
-                    </div>
+                    {isPremium ? (
+                      <div className="absolute -top-3 right-4">
+                        <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                          <Crown className="w-3 h-3 mr-1" />
+                          ĐANG SỬ DỤNG
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="absolute -top-3 right-4">
+                        <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                          <Gift className="w-3 h-3 mr-1" />
+                          PREMIUM
+                        </span>
+                      </div>
+                    )}
                     <CardHeader className="text-center">
                       <div className="text-4xl mb-4">👑</div>
                       <CardTitle className="text-white text-xl">Gói Premium</CardTitle>
                       <CardDescription className="text-amber-200">
-                        30.000 VNĐ/tháng
+                        {isPremium ? 'Đã kích hoạt' : '30.000 VNĐ/tháng'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="text-center">
@@ -214,7 +234,7 @@ const TarotReading = () => {
               </div>
 
               {/* Card Back Selection (Premium only) */}
-              {selectedPlan === 'premium' && (
+              {selectedPlan === 'premium' && (isPremium || !isPremium) && (
                 <div className="mb-12">
                   <h3 className="text-2xl font-bold text-center mb-6 text-glow">
                     <span className="bg-gradient-to-r from-amber-300 to-yellow-300 bg-clip-text text-transparent">
@@ -287,7 +307,9 @@ const TarotReading = () => {
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-12 py-4 rounded-full text-xl animate-glow transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="w-6 h-6 mr-3" />
-                  {isReading ? 'Đang Bói...' : 'Bắt Đầu Bói Bài'}
+                  {isReading ? 'Đang Bói...' : 
+                   selectedPlan === 'premium' && !isPremium ? 'Nâng Cấp & Bắt Đầu' : 
+                   'Bắt Đầu Bói Bài'}
                 </Button>
                 
                 {!selectedTopic && (

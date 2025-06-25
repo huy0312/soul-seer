@@ -2,6 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Crown, Star, Zap, Gift } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { usePremium } from '@/hooks/usePremium';
 
 const plans = [
   {
@@ -18,7 +20,8 @@ const plans = [
       "Truy cập AI Chat cơ bản"
     ],
     color: "from-blue-500 to-cyan-500",
-    popular: false
+    popular: false,
+    amount: 0
   },
   {
     icon: Crown,
@@ -35,7 +38,8 @@ const plans = [
       "Ưu tiên hỗ trợ"
     ],
     color: "from-purple-500 to-pink-500",
-    popular: true
+    popular: true,
+    amount: 30000
   },
   {
     icon: Zap,
@@ -51,11 +55,30 @@ const plans = [
       "Giải nghĩa text chi tiết"
     ],
     color: "from-amber-500 to-yellow-500",
-    popular: false
+    popular: false,
+    amount: 0
   }
 ];
 
 const SubscriptionPlans = () => {
+  const navigate = useNavigate();
+  const { isPremium } = usePremium();
+
+  const handlePlanSelect = (plan: typeof plans[0]) => {
+    if (plan.title === "Gói Miễn Phí" || plan.title === "AI Chat") {
+      // Navigate to tarot reading for free plans
+      navigate('/tarot-reading');
+    } else if (plan.title === "Gói Premium") {
+      if (isPremium) {
+        // Already premium, go to tarot reading
+        navigate('/tarot-reading');
+      } else {
+        // Navigate to payment page
+        navigate(`/payment?plan=premium&amount=${plan.amount}`);
+      }
+    }
+  };
+
   return (
     <section className="py-20 bg-gradient-to-b from-purple-900 to-black">
       <div className="container mx-auto px-4">
@@ -73,6 +96,8 @@ const SubscriptionPlans = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const IconComponent = plan.icon;
+            const isCurrentPremium = isPremium && plan.title === "Gói Premium";
+            
             return (
               <Card 
                 key={index}
@@ -83,6 +108,12 @@ const SubscriptionPlans = () => {
                 {plan.popular && (
                   <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 text-sm font-semibold">
                     Phổ Biến
+                  </div>
+                )}
+                
+                {isCurrentPremium && (
+                  <div className="absolute top-0 left-0 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-1 text-sm font-semibold">
+                    Đang Sử Dụng
                   </div>
                 )}
                 
@@ -113,9 +144,17 @@ const SubscriptionPlans = () => {
                   </ul>
 
                   <Button 
+                    onClick={() => handlePlanSelect(plan)}
                     className={`w-full mt-6 bg-gradient-to-r ${plan.color} hover:opacity-90 text-white font-semibold py-3 rounded-full transition-all duration-300 animate-glow`}
                   >
-                    {plan.title === "AI Chat" ? "Trải Nghiệm Ngay" : "Chọn Gói Này"}
+                    {isCurrentPremium 
+                      ? "Đang Sử Dụng" 
+                      : plan.title === "AI Chat" 
+                        ? "Trải Nghiệm Ngay" 
+                        : plan.title === "Gói Premium"
+                          ? "Nâng Cấp Premium"
+                          : "Chọn Gói Này"
+                    }
                   </Button>
                 </CardContent>
               </Card>
