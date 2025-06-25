@@ -1,15 +1,24 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Menu, X, User, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsUserMenuOpen(false);
   };
 
   return (
@@ -55,11 +64,55 @@ const Header = () => {
               Bói AI
             </Link>
             
-            <Link to="/tarot-reading">
-              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full">
-                Bói Miễn Phí
-              </Button>
-            </Link>
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 text-purple-200 hover:text-purple-100 transition-colors"
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-purple-600 text-white text-sm">
+                      {profile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden lg:block">{profile?.full_name || 'Tài khoản'}</span>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-purple-500/30 rounded-lg shadow-xl py-2">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center px-4 py-2 text-purple-200 hover:text-purple-100 hover:bg-slate-700/50 transition-colors"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Thông tin cá nhân
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center w-full px-4 py-2 text-red-400 hover:text-red-300 hover:bg-slate-700/50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Link to="/auth">
+                  <Button variant="outline" className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+                    Đăng nhập
+                  </Button>
+                </Link>
+                <Link to="/tarot-reading">
+                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full">
+                    Bói Miễn Phí
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -96,11 +149,51 @@ const Header = () => {
               >
                 Bói AI
               </Link>
-              <Link to="/tarot-reading" onClick={() => setIsMenuOpen(false)}>
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full w-full">
-                  Bói Miễn Phí
-                </Button>
-              </Link>
+              
+              {user ? (
+                <div className="space-y-4 pt-4 border-t border-purple-500/20">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={profile?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-purple-600 text-white">
+                        {profile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-purple-200">{profile?.full_name || 'Tài khoản'}</span>
+                  </div>
+                  <Link 
+                    to="/profile" 
+                    className="text-purple-200 hover:text-purple-100 transition-colors flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Thông tin cá nhân
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-red-400 hover:text-red-300 transition-colors flex items-center"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 pt-4 border-t border-purple-500/20">
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant="outline" className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10 w-full">
+                      Đăng nhập
+                    </Button>
+                  </Link>
+                  <Link to="/tarot-reading" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full w-full">
+                      Bói Miễn Phí
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
