@@ -74,38 +74,38 @@ const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Floating Tarot Cards Animation - Using uploaded images */}
+          {/* Floating Tarot Cards Animation - Full size cards */}
           <div className="relative">
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-6">
               <div
-                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-amber-400 shadow-2xl animate-float overflow-hidden"
+                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-amber-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '0.5s' }}
               >
                 <img 
-                  src="/lovable-uploads/af1b339a-67d3-4384-b6b5-c25a2f8f0eee.png" 
-                  alt="Arcana Pulse Tarot Card" 
+                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
+                  alt="Tarot Card 1" 
                   className="w-full h-full object-cover"
                 />
               </div>
               
               <div
-                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-purple-400 shadow-2xl animate-float overflow-hidden"
+                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-purple-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '1s' }}
               >
                 <img 
-                  src="/lovable-uploads/6e9128ea-41c7-4aa4-bd50-78a19726d651.png" 
-                  alt="Cosmic Whispers Tarot Card" 
+                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
+                  alt="Tarot Card 2" 
                   className="w-full h-full object-cover"
                 />
               </div>
               
               <div
-                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-cyan-400 shadow-2xl animate-float overflow-hidden"
+                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-cyan-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '1.5s' }}
               >
                 <img 
-                  src="/lovable-uploads/8ddfffde-e2b2-49fb-aa99-cdad83f9a0e3.png" 
-                  alt="Lunar Veil Tarot Card" 
+                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
+                  alt="Tarot Card 3" 
                   className="w-full h-full object-cover"
                 />
               </div>
