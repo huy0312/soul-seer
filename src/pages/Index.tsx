@@ -22,7 +22,7 @@ const Index = () => {
       <Footer />
       <BackgroundMusic />
       
-      <style jsx global>{`
+      <style>{`
         /* Improve "Bước tiếp theo" text visibility */
         .text-muted-foreground,
         .text-slate-500,
