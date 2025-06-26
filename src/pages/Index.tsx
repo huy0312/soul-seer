@@ -1,7 +1,6 @@
 
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
-import ServicesSection from '@/components/ServicesSection';
 import WeeklyHoroscope from '@/components/WeeklyHoroscope';
 import BookingSection from '@/components/BookingSection';
 import Footer from '@/components/Footer';
@@ -13,7 +12,6 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-purple-900 text-white overflow-x-hidden">
       <Header />
       <HeroSection />
-      <ServicesSection />
       <WeeklyHoroscope />
       <BookingSection />
       <AdminStats />

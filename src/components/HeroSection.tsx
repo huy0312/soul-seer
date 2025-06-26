@@ -74,7 +74,7 @@ const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Floating Tarot Cards Animation - Full size cards */}
+          {/* Floating Tarot Cards Animation - Using new uploaded cards */}
           <div className="relative">
             <div className="flex justify-center space-x-6">
               <div
@@ -82,8 +82,8 @@ const HeroSection = () => {
                 style={{ animationDelay: '0.5s' }}
               >
                 <img 
-                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
-                  alt="Tarot Card 1" 
+                  src="/lovable-uploads/6eca27cb-b928-4990-8a08-e98c20ce32df.png" 
+                  alt="Arcana Pulse Tarot Card" 
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -93,8 +93,8 @@ const HeroSection = () => {
                 style={{ animationDelay: '1s' }}
               >
                 <img 
-                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
-                  alt="Tarot Card 2" 
+                  src="/lovable-uploads/5b8a4aad-301c-491c-9474-ebbce98faf73.png" 
+                  alt="Cosmic Whispers Tarot Card" 
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -104,8 +104,8 @@ const HeroSection = () => {
                 style={{ animationDelay: '1.5s' }}
               >
                 <img 
-                  src="/lovable-uploads/10483561-9e47-4b09-b6ba-361f9dd61bdb.png" 
-                  alt="Tarot Card 3" 
+                  src="/lovable-uploads/abaade9c-fb7d-41b1-9d08-e0e58a6748ce.png" 
+                  alt="Lunar Veil Tarot Card" 
                   className="w-full h-full object-cover"
                 />
               </div>
