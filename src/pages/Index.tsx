@@ -21,6 +21,27 @@ const Index = () => {
       <AdminStats />
       <Footer />
       <BackgroundMusic />
+      
+      <style jsx global>{`
+        /* Improve "Bước tiếp theo" text visibility */
+        .text-muted-foreground,
+        .text-slate-500,
+        .text-gray-500 {
+          color: rgb(203 213 225) !important; /* slate-300 */
+        }
+        
+        /* Ensure better contrast for next step text */
+        [class*="next-step"],
+        [class*="step-indicator"] {
+          color: rgb(226 232 240) !important; /* slate-200 */
+          font-weight: 500;
+        }
+        
+        /* General improvement for hard-to-read text */
+        .text-sm.text-muted-foreground {
+          color: rgb(203 213 225) !important;
+        }
+      `}</style>
     </div>
   );
 };

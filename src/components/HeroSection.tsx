@@ -74,22 +74,41 @@ const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Floating Tarot Cards Animation */}
+          {/* Floating Tarot Cards Animation - Using uploaded images */}
           <div className="relative">
             <div className="flex justify-center space-x-4">
-              {[1, 2, 3].map((card) => (
-                <div
-                  key={card}
-                  className="w-16 h-24 md:w-20 md:h-32 bg-gradient-to-b from-purple-800 to-amber-900 rounded-lg border-2 border-amber-400 shadow-2xl animate-float mystic-card"
-                  style={{
-                    animationDelay: `${card * 0.5}s`,
-                  }}
-                >
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Star className="w-6 h-6 md:w-8 md:h-8 text-amber-300" />
-                  </div>
-                </div>
-              ))}
+              <div
+                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-amber-400 shadow-2xl animate-float overflow-hidden"
+                style={{ animationDelay: '0.5s' }}
+              >
+                <img 
+                  src="/lovable-uploads/af1b339a-67d3-4384-b6b5-c25a2f8f0eee.png" 
+                  alt="Arcana Pulse Tarot Card" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              <div
+                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-purple-400 shadow-2xl animate-float overflow-hidden"
+                style={{ animationDelay: '1s' }}
+              >
+                <img 
+                  src="/lovable-uploads/6e9128ea-41c7-4aa4-bd50-78a19726d651.png" 
+                  alt="Cosmic Whispers Tarot Card" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              <div
+                className="w-16 h-24 md:w-20 md:h-32 rounded-lg border-2 border-cyan-400 shadow-2xl animate-float overflow-hidden"
+                style={{ animationDelay: '1.5s' }}
+              >
+                <img 
+                  src="/lovable-uploads/8ddfffde-e2b2-49fb-aa99-cdad83f9a0e3.png" 
+                  alt="Lunar Veil Tarot Card" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>

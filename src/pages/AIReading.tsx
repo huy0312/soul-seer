@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,9 +44,9 @@ ${cardDescriptions}
 
 Câu hỏi: "${question}"
 
-Tôi sẽ giải thích ý nghĩa của từng lá bài và liên kết chúng với câu hỏi của bạn. Tôi sẽ phân tích cách 3 lá bài này tương tác với nhau để đưa ra lời khuyên tổng thể. Trả lời bằng tiếng Việt một cách ấm áp và chi tiết.`;
+Tôi sẽ giải thích ý nghĩa của từng lá bài và liên kết chúng với câu hỏi của bạn. Tôi sẽ phân tích cách 3 lá bài này tương tác với nhau để đưa ra lời khuyên tổng thể. Tôi luôn xưng hô "tôi" khi nói về bản thân và gọi người hỏi là "bạn". Trả lời bằng tiếng Việt một cách ấm áp và chi tiết.`;
       } else {
-        prompt = `Tôi là Soul Seer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.
+        prompt = `Tôi là Soul Seer, một người có khả năng cảm nhận và hiểu được năng lượng xung quanh. Tôi sẽ chia sẻ những gì tôi cảm nhận được và đưa ra lời khuyên chân thành cho bạn. Tôi luôn cố gắng mang đến những lời khuyên tích cực và thiết thực. Hãy để tôi giúp bạn tìm hiểu về tình huống hiện tại và những gì có thể xảy ra trong tương lai. Tôi luôn xưng hô "tôi" khi nói về bản thân và gọi người hỏi là "bạn". Tôi sẽ trả lời bằng tiếng Việt một cách ấm áp và gần gũi.
 
 Câu hỏi của bạn: ${question}`;
       }
