@@ -147,7 +147,7 @@ const TarotResult = () => {
             
             <div className="mb-6">
               <img 
-                src="/lovable-uploads/f06dd398-3fe1-400c-b402-f4b361db1465.png" 
+                src="/lovable-uploads/Logo.png" 
                 alt="Soulseer Logo" 
                 className="w-16 h-16 mx-auto animate-glow"
               />
