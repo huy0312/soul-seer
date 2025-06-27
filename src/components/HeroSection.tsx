@@ -68,7 +68,7 @@ const HeroSection = () => {
                 className="border-2 border-cyan-400 text-cyan-300 hover:bg-cyan-400 hover:text-slate-900 font-semibold px-8 py-4 rounded-full text-lg backdrop-blur-sm font-sans"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
-                Bói AI Gemini
+                Thầy Bói Online SoulSeer
               </Button>
             </Link>
           </div>
