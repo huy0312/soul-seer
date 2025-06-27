@@ -287,7 +287,7 @@ Câu hỏi của bạn: ${question}`;
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-white">
                     {readingMode === 'tarot' ? [
                       "Tình yêu của tôi sẽ như thế nào trong 3 tháng tới?",
                       "Tôi có nên thay đổi công việc hiện tại không?",

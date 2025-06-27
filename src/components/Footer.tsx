@@ -15,13 +15,19 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-purple-200 mb-4 leading-relaxed">
-              Khám phá vận mệnh của bạn với dịch vụ Soulseer chuyên nghiệp. 
+              Khám phá vận mệnh của bạn với dịch vụ Soulseer chuyên nghiệp.
               Chúng tôi mang đến những dự đoán chính xác và lời khuyên hữu ích cho cuộc sống.
             </p>
             <div className="flex space-x-4">
-              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors cursor-pointer">
+              <a
+                href="https://www.facebook.com/profile.php?id=61577281085538"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors"
+              >
                 <span className="text-white font-bold">f</span>
-              </div>
+              </a>
+
               <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors cursor-pointer">
                 <span className="text-white font-bold">@</span>
               </div>
@@ -65,8 +71,8 @@ const Footer = () => {
 
         <div className="border-t border-purple-500/20 mt-8 pt-8 text-center">
           <p className="text-purple-300">
-            © 2024 Soulseer. Tất cả quyền được bảo lưu. | 
-            <a href="#privacy" className="hover:text-purple-200 ml-1">Chính sách bảo mật</a> | 
+            © 2024 Soulseer. Tất cả quyền được bảo lưu. |
+            <a href="#privacy" className="hover:text-purple-200 ml-1">Chính sách bảo mật</a> |
             <a href="#terms" className="hover:text-purple-200 ml-1">Điều khoản sử dụng</a>
           </p>
         </div>

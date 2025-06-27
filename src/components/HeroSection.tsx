@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Star, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -74,11 +73,11 @@ const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Floating Tarot Cards Animation - Using new uploaded cards */}
+          {/* Floating Tarot Cards Animation - Updated size */}
           <div className="relative">
             <div className="flex justify-center space-x-6">
               <div
-                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-amber-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
+                className="w-50 h-50 md:w-48 md:h-72 rounded-lg border-2 border-amber-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '0.5s' }}
               >
                 <img 
@@ -89,7 +88,7 @@ const HeroSection = () => {
               </div>
               
               <div
-                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-purple-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
+                className="w-36 h-56 md:w-48 md:h-72 rounded-lg border-2 border-purple-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '1s' }}
               >
                 <img 
@@ -100,7 +99,7 @@ const HeroSection = () => {
               </div>
               
               <div
-                className="w-32 h-48 md:w-40 md:h-60 rounded-lg border-2 border-cyan-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
+                className="w-36 h-56 md:w-48 md:h-72 rounded-lg border-2 border-cyan-400 shadow-2xl animate-float overflow-hidden transform hover:scale-105 transition-all duration-300"
                 style={{ animationDelay: '1.5s' }}
               >
                 <img 

@@ -112,7 +112,7 @@ const BookingConfirmation = () => {
                       <p className="font-semibold text-white">{booking.full_name}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center text-slate-300">
                     <Phone className="w-5 h-5 mr-3 text-purple-400" />
                     <div>
@@ -121,7 +121,7 @@ const BookingConfirmation = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center text-slate-300">
                     <Calendar className="w-5 h-5 mr-3 text-amber-400" />
@@ -130,7 +130,7 @@ const BookingConfirmation = () => {
                       <p className="font-semibold text-white">{formatDate(booking.preferred_date)}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start text-slate-300">
                     <MessageSquare className="w-5 h-5 mr-3 text-green-400 mt-1" />
                     <div>
@@ -142,7 +142,7 @@ const BookingConfirmation = () => {
                   </div>
                 </div>
               </div>
-              
+
               {booking.notes && (
                 <div className="border-t border-slate-600 pt-4">
                   <p className="text-sm text-slate-400 mb-2">Ghi chú</p>
@@ -152,26 +152,27 @@ const BookingConfirmation = () => {
             </CardContent>
           </Card>
 
-          {/* Next Steps */}
-          <Card className="bg-gradient-to-r from-amber-500/10 to-purple-500/10 border-amber-400/30 backdrop-blur-sm mb-8">
+          <Card className="bg-[#2a1d44] border border-purple-500/30 shadow-lg rounded-xl mb-8">
             <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4 font-serif">Bước tiếp theo</h3>
-              <div className="space-y-3 text-slate-300">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-amber-400 rounded-full mr-3"></div>
-                  <span>Chúng tôi sẽ liên hệ với bạn trong vòng 24 giờ để xác nhận lịch hẹn</span>
+              <h3 className="text-xl font-bold text-amber-200 mb-4 font-serif">Bước tiếp theo</h3>
+              <div className="space-y-3 text-sm leading-relaxed">
+                <div className="flex items-start">
+                  <div className="w-2 h-2 mt-1 bg-amber-400 rounded-full mr-3"></div>
+                  <span className="text-amber-100">Chúng tôi sẽ liên hệ với bạn trong vòng 24 giờ để xác nhận lịch hẹn</span>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full mr-3"></div>
-                  <span>Thông tin đặt lịch đã được gửi đến fanpage Facebook của chúng tôi</span>
+                <div className="flex items-start">
+                  <div className="w-2 h-2 mt-1 bg-cyan-400 rounded-full mr-3"></div>
+                  <span className="text-cyan-100">Thông tin đặt lịch đã được gửi đến fanpage Facebook của chúng tôi</span>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                  <span>Vui lòng giữ máy để nhận cuộc gọi xác nhận từ chúng tôi</span>
+                <div className="flex items-start">
+                  <div className="w-2 h-2 mt-1 bg-purple-400 rounded-full mr-3"></div>
+                  <span className="text-purple-100">Vui lòng giữ máy để nhận cuộc gọi xác nhận từ chúng tôi</span>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
