@@ -242,30 +242,6 @@ const BookingSection = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Giá dịch vụ */}
-          <Card className="bg-gradient-to-r from-amber-500/10 to-purple-500/10 border-amber-400/30 backdrop-blur-sm">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold text-white mb-4 font-serif">Bảng Giá Dịch Vụ</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-4 bg-slate-800/30 rounded-lg">
-                  <h4 className="font-semibold text-amber-300 mb-2 font-serif">Cơ Bản</h4>
-                  <p className="text-2xl font-bold text-white mb-1 font-sans">300.000đ</p>
-                  <p className="text-sm text-slate-300 font-sans">Trải 3-5 lá bài</p>
-                </div>
-                <div className="p-4 bg-slate-800/30 rounded-lg border border-purple-400/30">
-                  <h4 className="font-semibold text-purple-300 mb-2 font-serif">Tiêu Chuẩn</h4>
-                  <p className="text-2xl font-bold text-white mb-1 font-sans">500.000đ</p>
-                  <p className="text-sm text-slate-300 font-sans">Trải đầy đủ + tư vấn</p>
-                </div>
-                <div className="p-4 bg-slate-800/30 rounded-lg">
-                  <h4 className="font-semibold text-cyan-300 mb-2 font-serif">Cao Cấp</h4>
-                  <p className="text-2xl font-bold text-white mb-1 font-sans">800.000đ</p>
-                  <p className="text-sm text-slate-300 font-sans">Tư vấn sâu + ghi âm</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </section>
