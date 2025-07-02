@@ -21,15 +21,15 @@ const TarotResult = () => {
   const [allCards, setAllCards] = useState<TarotCardData[]>([]);
   const [selectedCardIndices, setSelectedCardIndices] = useState<number[]>([]);
 
-  // Card back images from landing page
-  const cardBackImages = [
-    "/lovable-uploads/6eca27cb-b928-4990-8a08-e98c20ce32df.png", // Arcana Pulse
-    "/lovable-uploads/5b8a4aad-301c-491c-9474-ebbce98faf73.png", // Cosmic Whispers
-    "/lovable-uploads/abaade9c-fb7d-41b1-9d08-e0e58a6748ce.png"  // Lunar Veil
-  ];
+  // Card back mapping - each selection corresponds to specific image
+  const cardBackMapping: Record<string, string> = {
+    'mystical': "/lovable-uploads/abaade9c-fb7d-41b1-9d08-e0e58a6748ce.png", // Huyền Bí → Lunar Veil
+    'celestial': "/lovable-uploads/5b8a4aad-301c-491c-9474-ebbce98faf73.png", // Thiên Thể → Cosmic Whispers
+    'classic': "/lovable-uploads/6eca27cb-b928-4990-8a08-e98c20ce32df.png"   // Cổ Điển → Arcana Pulse
+  };
 
-  const getCardBackImage = (index: number) => {
-    return cardBackImages[index % 3];
+  const getCardBackImage = () => {
+    return cardBackMapping[cardBack || 'classic'] || cardBackMapping['classic'];
   };
 
   const topicNames: Record<string, string> = {
@@ -239,7 +239,7 @@ const TarotResult = () => {
                   >
                     <div className="aspect-[2/3] rounded-lg overflow-hidden shadow-lg border-2 border-purple-400/30">
                       <img 
-                        src={getCardBackImage(index)}
+                        src={getCardBackImage()}
                         alt="Card Back"
                         className="w-full h-full object-cover"
                       />
