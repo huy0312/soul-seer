@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,17 @@ const TarotResult = () => {
   const [showCardSelection, setShowCardSelection] = useState(false);
   const [allCards, setAllCards] = useState<TarotCardData[]>([]);
   const [selectedCardIndices, setSelectedCardIndices] = useState<number[]>([]);
+
+  // Card back images from landing page
+  const cardBackImages = [
+    "/lovable-uploads/6eca27cb-b928-4990-8a08-e98c20ce32df.png", // Arcana Pulse
+    "/lovable-uploads/5b8a4aad-301c-491c-9474-ebbce98faf73.png", // Cosmic Whispers
+    "/lovable-uploads/abaade9c-fb7d-41b1-9d08-e0e58a6748ce.png"  // Lunar Veil
+  ];
+
+  const getCardBackImage = (index: number) => {
+    return cardBackImages[index % 3];
+  };
 
   const topicNames: Record<string, string> = {
     'love': 'Tình Yêu & Tình Cảm',
@@ -216,22 +226,26 @@ const TarotResult = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-6 md:grid-cols-10 lg:grid-cols-13 gap-2 max-w-7xl mx-auto">
+              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4 max-w-7xl mx-auto">
                 {allCards.map((card, index) => (
                   <div
                     key={card.id}
-                    className={`relative cursor-pointer transition-all duration-300 ${
+                    className={`relative cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                       selectedCardIndices.includes(index)
-                        ? 'ring-2 ring-amber-400 transform scale-105'
-                        : 'hover:transform hover:scale-110'
+                        ? 'ring-4 ring-amber-400 scale-110 z-10'
+                        : ''
                     } ${selectedCardIndices.length >= 3 && !selectedCardIndices.includes(index) ? 'opacity-50' : ''}`}
                     onClick={() => handleCardSelect(index)}
                   >
-                    <div className="aspect-[2/3] bg-gradient-to-br from-purple-600 via-pink-500 to-purple-800 rounded-lg flex items-center justify-center border-2 border-purple-400 text-2xl font-bold text-white shadow-lg">
-                      {cardBackNames[cardBack as string]?.split(' ')[1] || '🔮'}
+                    <div className="aspect-[2/3] rounded-lg overflow-hidden shadow-lg border-2 border-purple-400/30">
+                      <img 
+                        src={getCardBackImage(index)}
+                        alt="Card Back"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     {selectedCardIndices.includes(index) && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-white text-sm font-bold z-20 shadow-lg">
                         {selectedCardIndices.indexOf(index) + 1}
                       </div>
                     )}
