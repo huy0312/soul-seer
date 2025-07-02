@@ -13,6 +13,7 @@ import BookingConfirmation from "./pages/BookingConfirmation";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Payment from "./pages/Payment";
+import VerificationSuccess from "./pages/VerificationSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/verification-success" element={<VerificationSuccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
