@@ -59,33 +59,33 @@ const AdminStats = () => {
       let currentVisits = localStorage.getItem('totalVisits');
       let todayVisits = localStorage.getItem('todayVisits');
       
-      // If no localStorage data, set higher initial values
+      // If no localStorage data, set higher initial values with +100 bonus
       if (!currentVisits) {
-        const baseVisits = (totalBookings || 0) * 10 + Math.floor(Math.random() * 5000) + 8000;
+        const baseVisits = (totalBookings || 0) * 10 + Math.floor(Math.random() * 5000) + 8000 + 100;
         localStorage.setItem('totalVisits', baseVisits.toString());
         currentVisits = baseVisits.toString();
       }
       
       if (!todayVisits) {
-        const baseTodayVisits = (todayBookings || 0) * 3 + Math.floor(Math.random() * 300) + 150;
+        const baseTodayVisits = (todayBookings || 0) * 3 + Math.floor(Math.random() * 300) + 150 + 100;
         localStorage.setItem('todayVisits', baseTodayVisits.toString());
         todayVisits = baseTodayVisits.toString();
       }
       
       setStats({
-        totalUsers: totalUsers || 0,
-        totalVisits: parseInt(currentVisits),
-        todayVisits: parseInt(todayVisits),
-        activeUsers: Math.floor(Math.random() * 45) + 25 // 25-70 active users
+        totalUsers: (totalUsers || 0) + 100, // Add 100 to total registered users
+        totalVisits: parseInt(currentVisits) + 100, // Add 100 to total visits
+        todayVisits: parseInt(todayVisits) + 100, // Add 100 to today's visits
+        activeUsers: Math.floor(Math.random() * 45) + 25 + 100 // Add 100 to active users (125-170 active users)
       });
     } catch (error) {
       console.error('Error loading real stats:', error);
-      // Fallback to higher demo data if error
+      // Fallback to higher demo data if error, with +100 bonus
       const demoStats = {
-        totalUsers: Math.floor(Math.random() * 500) + 1200,
-        totalVisits: Math.floor(Math.random() * 8000) + 12000,
-        todayVisits: Math.floor(Math.random() * 400) + 200,
-        activeUsers: Math.floor(Math.random() * 45) + 25
+        totalUsers: Math.floor(Math.random() * 500) + 1200 + 100,
+        totalVisits: Math.floor(Math.random() * 8000) + 12000 + 100,
+        todayVisits: Math.floor(Math.random() * 400) + 200 + 100,
+        activeUsers: Math.floor(Math.random() * 45) + 25 + 100
       };
       setStats(demoStats);
     } finally {
@@ -102,14 +102,14 @@ const AdminStats = () => {
 
     // Increase visit counts by 2-5 to make it more realistic
     const visitIncrement = Math.floor(Math.random() * 4) + 2;
-    let newTotalVisits = currentVisits ? parseInt(currentVisits) + visitIncrement : 12000 + visitIncrement;
+    let newTotalVisits = currentVisits ? parseInt(currentVisits) + visitIncrement : 12000 + visitIncrement + 100;
     let newTodayVisits = visitIncrement;
 
     if (lastVisitDate === today && todayVisits) {
       newTodayVisits = parseInt(todayVisits) + visitIncrement;
     } else if (lastVisitDate !== today) {
-      // Reset today's visits if it's a new day, but start with a base number
-      newTodayVisits = Math.floor(Math.random() * 50) + 30;
+      // Reset today's visits if it's a new day, but start with a base number + 100
+      newTodayVisits = Math.floor(Math.random() * 50) + 30 + 100;
     }
 
     localStorage.setItem('totalVisits', newTotalVisits.toString());
@@ -122,14 +122,14 @@ const AdminStats = () => {
         ...prev,
         totalVisits: newTotalVisits,
         todayVisits: newTodayVisits,
-        activeUsers: Math.floor(Math.random() * 45) + 25 // Refresh active users
+        activeUsers: Math.floor(Math.random() * 45) + 25 + 100 // Refresh active users with +100 bonus
       }));
     }
   }, [isAdmin]);
 
   const statsCards = [
     {
-      title: 'Tổng Người Dùng',
+      title: 'Tổng Người Dùng Đăng Ký',
       value: loading ? '...' : stats.totalUsers.toLocaleString(),
       description: 'Số người đã đăng ký tài khoản thật',
       icon: Users,
