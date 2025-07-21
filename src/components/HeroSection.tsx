@@ -81,7 +81,7 @@ const HeroSection = () => {
               {/* User count display */}
               <div className="flex items-center justify-center lg:justify-start space-x-2 text-amber-300">
                 <Users className="w-5 h-5" />
-                <span className="text-lg font-medium">250 người đang sử dụng</span>
+                <span className="text-lg font-medium">250+ người đang sử dụng</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

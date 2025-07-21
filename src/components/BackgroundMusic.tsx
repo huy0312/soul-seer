@@ -41,9 +41,7 @@ const BackgroundMusic = () => {
         onPause={() => setIsPlaying(false)}
       >
         {/* Multiple source formats for better browser compatibility */}
-        <source src="/ambient-music.mp3" type="audio/mpeg" />
-        <source src="/ambient-music.ogg" type="audio/ogg" />
-        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav" />
+        <source src="/mymusic.mp3" type="audio/mpeg" />
       </audio>
 
       {/* Music Control Button */}
