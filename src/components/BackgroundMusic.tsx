@@ -11,7 +11,13 @@ const BackgroundMusic = () => {
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
-      audio.addEventListener('canplaythrough', () => setIsLoaded(true));
+      audio.addEventListener('canplaythrough', () => {
+        setIsLoaded(true);
+        // Auto-play music when loaded
+        audio.play().catch(() => {
+          console.log('Auto-play prevented by browser, user will need to click to play');
+        });
+      });
       audio.addEventListener('error', () => {
         console.log('Audio file not found, using alternative source');
         setIsLoaded(false);

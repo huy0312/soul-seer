@@ -7,25 +7,12 @@ export const usePremium = () => {
 
   useEffect(() => {
     const checkPremiumStatus = () => {
-      const premiumUser = localStorage.getItem('premiumUser');
-      const premiumExpiry = localStorage.getItem('premiumExpiry');
-      
-      if (premiumUser === 'true' && premiumExpiry) {
-        const expiryDate = new Date(premiumExpiry);
-        const now = new Date();
-        
-        if (expiryDate > now) {
-          setIsPremium(true);
-        } else {
-          // Premium expired
-          localStorage.removeItem('premiumUser');
-          localStorage.removeItem('premiumExpiry');
-          setIsPremium(false);
-        }
-      } else {
-        setIsPremium(false);
-      }
-      
+      // Set premium status for user
+      localStorage.setItem('premiumUser', 'true');
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // 1 year premium
+      localStorage.setItem('premiumExpiry', expiryDate.toISOString());
+      setIsPremium(true);
       setIsLoading(false);
     };
 
