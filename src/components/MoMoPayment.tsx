@@ -72,10 +72,6 @@ const MoMoPayment = ({ amount, description, onSuccess, onCancel }: MoMoPaymentPr
               Hủy thanh toán
             </Button>
           </div>
-
-          <div className="text-center text-xs text-gray-500">
-            Thanh toán sẽ tự động hoàn tất sau 20 giây
-          </div>
         </CardContent>
       </Card>
     </div>
