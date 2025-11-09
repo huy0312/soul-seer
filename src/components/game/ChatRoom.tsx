@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, Send } from 'lucide-react';
+import { Mic, MicOff, Send, Volume2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useVoiceChat } from '@/hooks/useVoiceChat';
 import type { Database } from '@/integrations/supabase/types';
 
 type Player = Database['public']['Tables']['players']['Row'];
@@ -26,13 +27,17 @@ interface ChatRoomProps {
 export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, players }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isMicOn, setIsMicOn] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
+  const otherPlayerIds = players.map((p) => p.id).filter((id) => id !== currentPlayerId);
+
+  // Use voice chat hook
+  const { isMicOn, isConnected, toggleMic } = useVoiceChat({
+    gameId,
+    currentPlayerId,
+    otherPlayerIds,
+  });
 
   useEffect(() => {
     // Load initial messages
@@ -141,60 +146,38 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
     }
   };
 
-  const toggleMic = async () => {
-    if (isMicOn) {
-      // Turn off mic
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      setIsMicOn(false);
-      setIsRecording(false);
-    } else {
-      // Turn on mic
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStreamRef.current = stream;
-        setIsMicOn(true);
-        setIsRecording(true);
-
-        // Here you would typically send audio to other players via WebRTC
-        // For now, we'll just show that mic is on
-        console.log('Microphone enabled');
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
-      }
-    }
-  };
 
   return (
     <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Chat</span>
-          <Button
-            onClick={toggleMic}
-            variant={isMicOn ? 'default' : 'outline'}
-            size="sm"
-            className={isMicOn ? 'bg-red-600 hover:bg-red-700' : ''}
-          >
-            {isMicOn ? (
-              <>
-                <MicOff className="h-4 w-4 mr-2" />
-                Tắt mic
-              </>
-            ) : (
-              <>
-                <Mic className="h-4 w-4 mr-2" />
-                Bật mic
-              </>
+          <div className="flex items-center gap-2">
+            {isConnected && (
+              <div className="flex items-center gap-1 text-green-400 text-xs">
+                <Volume2 className="h-3 w-3" />
+                <span>Đã kết nối</span>
+              </div>
             )}
-          </Button>
+            <Button
+              onClick={toggleMic}
+              variant={isMicOn ? 'default' : 'outline'}
+              size="sm"
+              className={isMicOn ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              {isMicOn ? (
+                <>
+                  <MicOff className="h-4 w-4 mr-2" />
+                  Tắt mic
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4 mr-2" />
+                  Bật mic
+                </>
+              )}
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
@@ -256,10 +239,10 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          {isRecording && (
+          {isMicOn && (
             <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span>Đang ghi âm...</span>
+              <span>Microphone đang bật - Mọi người có thể nghe bạn</span>
             </div>
           )}
         </div>
