@@ -16,6 +16,10 @@ interface Question {
   correct_answer: string;
   points: number;
   order_index: number;
+  question_type?: 'normal' | 'hang_ngang' | 'chuong_ngai_vat' | 'goi_cau_hoi';
+  hang_ngang_index?: number | null;
+  goi_diem?: number | null;
+  hint?: string | null;
 }
 
 const roundLabels: Record<RoundType, string> = {

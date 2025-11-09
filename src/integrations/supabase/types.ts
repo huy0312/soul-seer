@@ -148,6 +148,10 @@ export type Database = {
           correct_answer: string
           points: number
           order_index: number
+          question_type: 'normal' | 'hang_ngang' | 'chuong_ngai_vat' | 'goi_cau_hoi' | null
+          hang_ngang_index: number | null
+          goi_diem: number | null
+          hint: string | null
           created_at: string
         }
         Insert: {
@@ -158,6 +162,10 @@ export type Database = {
           correct_answer: string
           points?: number
           order_index: number
+          question_type?: 'normal' | 'hang_ngang' | 'chuong_ngai_vat' | 'goi_cau_hoi' | null
+          hang_ngang_index?: number | null
+          goi_diem?: number | null
+          hint?: string | null
           created_at?: string
         }
         Update: {
@@ -168,6 +176,10 @@ export type Database = {
           correct_answer?: string
           points?: number
           order_index?: number
+          question_type?: 'normal' | 'hang_ngang' | 'chuong_ngai_vat' | 'goi_cau_hoi' | null
+          hang_ngang_index?: number | null
+          goi_diem?: number | null
+          hint?: string | null
           created_at?: string
         }
         Relationships: [
@@ -187,6 +199,7 @@ export type Database = {
           answer_text: string
           is_correct: boolean
           points_earned: number
+          response_time: number | null
           answered_at: string
         }
         Insert: {
@@ -196,6 +209,7 @@ export type Database = {
           answer_text: string
           is_correct?: boolean
           points_earned?: number
+          response_time?: number | null
           answered_at?: string
         }
         Update: {
@@ -205,6 +219,7 @@ export type Database = {
           answer_text?: string
           is_correct?: boolean
           points_earned?: number
+          response_time?: number | null
           answered_at?: string
         }
         Relationships: [
@@ -216,6 +231,83 @@ export type Database = {
           },
           {
             foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      vcnv_state: {
+        Row: {
+          id: string
+          game_id: string
+          hang_ngang_index: number
+          is_revealed: boolean
+          revealed_at: string | null
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          hang_ngang_index: number
+          is_revealed?: boolean
+          revealed_at?: string | null
+        }
+        Update: {
+          id?: string
+          game_id?: string
+          hang_ngang_index?: number
+          is_revealed?: boolean
+          revealed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vcnv_state_game_id_fkey"
+            columns: ["game_id"]
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      ve_dich_state: {
+        Row: {
+          id: string
+          game_id: string
+          player_id: string
+          goi_diem: number
+          question_id: string
+          selected_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          player_id: string
+          goi_diem: number
+          question_id: string
+          selected_at?: string
+        }
+        Update: {
+          id?: string
+          game_id?: string
+          player_id?: string
+          goi_diem?: number
+          question_id?: string
+          selected_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ve_dich_state_game_id_fkey"
+            columns: ["game_id"]
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ve_dich_state_player_id_fkey"
+            columns: ["player_id"]
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ve_dich_state_question_id_fkey"
             columns: ["question_id"]
             referencedRelation: "questions"
             referencedColumns: ["id"]
