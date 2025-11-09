@@ -69,37 +69,65 @@ export const VoiceStatus: React.FC<VoiceStatusProps> = ({
 
   // Initialize audio context and analysers
   useEffect(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-    }
-
-    // Setup analyser for local stream
-    if (localStream && audioContextRef.current) {
-      const source = audioContextRef.current.createMediaStreamSource(localStream);
-      const analyser = audioContextRef.current.createAnalyser();
-      analyser.fftSize = 64;
-      analyser.smoothingTimeConstant = 0.8;
-      source.connect(analyser);
-      analyserRefs.current.set(currentPlayerId, analyser);
-      dataArrayRefs.current.set(currentPlayerId, new Uint8Array(analyser.frequencyBinCount));
-    }
-
-    // Setup analysers for remote streams
-    remoteStreams.forEach((stream, playerId) => {
-      if (audioContextRef.current) {
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        const analyser = audioContextRef.current.createAnalyser();
-        analyser.fftSize = 64;
-        analyser.smoothingTimeConstant = 0.8;
-        source.connect(analyser);
-        analyserRefs.current.set(playerId, analyser);
-        dataArrayRefs.current.set(playerId, new Uint8Array(analyser.frequencyBinCount));
+    const setupAudioContext = async () => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext();
       }
-    });
+
+      // Resume audio context if suspended (required by browser autoplay policy)
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      // Setup analyser for local stream
+      if (localStream && audioContextRef.current) {
+        // Remove old analyser if exists
+        if (analyserRefs.current.has(currentPlayerId)) {
+          analyserRefs.current.delete(currentPlayerId);
+          dataArrayRefs.current.delete(currentPlayerId);
+        }
+
+        try {
+          const source = audioContextRef.current.createMediaStreamSource(localStream);
+          const analyser = audioContextRef.current.createAnalyser();
+          analyser.fftSize = 256; // Increased for better frequency resolution
+          analyser.smoothingTimeConstant = 0.3; // Lower for more responsive
+          analyser.minDecibels = -90;
+          analyser.maxDecibels = -10;
+          source.connect(analyser);
+          analyserRefs.current.set(currentPlayerId, analyser);
+          dataArrayRefs.current.set(currentPlayerId, new Uint8Array(analyser.frequencyBinCount));
+          console.log('Local stream analyser setup complete');
+        } catch (error) {
+          console.error('Error setting up local stream analyser:', error);
+        }
+      }
+
+      // Setup analysers for remote streams
+      remoteStreams.forEach((stream, playerId) => {
+        if (audioContextRef.current && !analyserRefs.current.has(playerId)) {
+          try {
+            const source = audioContextRef.current.createMediaStreamSource(stream);
+            const analyser = audioContextRef.current.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.3;
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = -10;
+            source.connect(analyser);
+            analyserRefs.current.set(playerId, analyser);
+            dataArrayRefs.current.set(playerId, new Uint8Array(analyser.frequencyBinCount));
+            console.log('Remote stream analyser setup complete for', playerId);
+          } catch (error) {
+            console.error('Error setting up remote stream analyser:', error);
+          }
+        }
+      });
+    };
+
+    setupAudioContext();
 
     return () => {
-      analyserRefs.current.clear();
-      dataArrayRefs.current.clear();
+      // Don't clear analysers here, keep them for visualization
     };
   }, [localStream, remoteStreams, currentPlayerId]);
 
@@ -115,9 +143,19 @@ export const VoiceStatus: React.FC<VoiceStatusProps> = ({
         if (localStream && analyserRefs.current.has(currentPlayerId)) {
           const analyser = analyserRefs.current.get(currentPlayerId)!;
           const dataArray = dataArrayRefs.current.get(currentPlayerId)!;
+          
+          // Get frequency data
           analyser.getByteFrequencyData(dataArray);
-
-          const volume = Math.max(...dataArray) / 255;
+          
+          // Calculate volume (RMS - Root Mean Square for better accuracy)
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i] * dataArray[i];
+          }
+          const rms = Math.sqrt(sum / dataArray.length);
+          const volume = Math.min(rms / 255, 1); // Normalize to 0-1
+          
+          // Get frequency data for visualization (first 32 bins)
           const frequency = Array.from(dataArray.slice(0, 32));
 
           updated.set(currentPlayerId, {
@@ -136,9 +174,19 @@ export const VoiceStatus: React.FC<VoiceStatusProps> = ({
           if (analyserRefs.current.has(playerId)) {
             const analyser = analyserRefs.current.get(playerId)!;
             const dataArray = dataArrayRefs.current.get(playerId)!;
+            
+            // Get frequency data
             analyser.getByteFrequencyData(dataArray);
-
-            const volume = Math.max(...dataArray) / 255;
+            
+            // Calculate volume (RMS)
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              sum += dataArray[i] * dataArray[i];
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            const volume = Math.min(rms / 255, 1); // Normalize to 0-1
+            
+            // Get frequency data for visualization
             const frequency = Array.from(dataArray.slice(0, 32));
 
             updated.set(playerId, {

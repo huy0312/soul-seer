@@ -137,8 +137,29 @@ export const useVoiceChat = ({ gameId, currentPlayerId, otherPlayerIds }: VoiceC
 
   const startVoiceChat = async () => {
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Get user media with better audio constraints
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+        },
+      });
+      
+      // Check if stream has audio tracks
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio tracks in stream');
+      }
+      
+      console.log('Audio stream obtained:', {
+        trackCount: audioTracks.length,
+        trackLabel: audioTracks[0].label,
+        trackEnabled: audioTracks[0].enabled,
+        trackReadyState: audioTracks[0].readyState,
+      });
+      
       localStreamRef.current = stream;
       setIsMicOn(true);
 
