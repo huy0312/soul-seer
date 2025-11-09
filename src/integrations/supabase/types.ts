@@ -72,6 +72,156 @@ export type Database = {
         }
         Relationships: []
       }
+      games: {
+        Row: {
+          id: string
+          code: string
+          status: 'waiting' | 'playing' | 'finished'
+          current_round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          status?: 'waiting' | 'playing' | 'finished'
+          current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          status?: 'waiting' | 'playing' | 'finished'
+          current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          id: string
+          game_id: string
+          name: string
+          score: number
+          position: number | null
+          joined_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          name: string
+          score?: number
+          position?: number | null
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          game_id?: string
+          name?: string
+          score?: number
+          position?: number | null
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      questions: {
+        Row: {
+          id: string
+          game_id: string
+          round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          question_text: string
+          correct_answer: string
+          points: number
+          order_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          question_text: string
+          correct_answer: string
+          points?: number
+          order_index: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          game_id?: string
+          round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          question_text?: string
+          correct_answer?: string
+          points?: number
+          order_index?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_game_id_fkey"
+            columns: ["game_id"]
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      answers: {
+        Row: {
+          id: string
+          player_id: string
+          question_id: string
+          answer_text: string
+          is_correct: boolean
+          points_earned: number
+          answered_at: string
+        }
+        Insert: {
+          id?: string
+          player_id: string
+          question_id: string
+          answer_text: string
+          is_correct?: boolean
+          points_earned?: number
+          answered_at?: string
+        }
+        Update: {
+          id?: string
+          player_id?: string
+          question_id?: string
+          answer_text?: string
+          is_correct?: boolean
+          points_earned?: number
+          answered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_player_id_fkey"
+            columns: ["player_id"]
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
