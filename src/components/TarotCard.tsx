@@ -26,7 +26,7 @@ const TarotCard = ({ card, interpretation, isRevealed, onReveal }: TarotCardProp
                 <img 
                   src="/lovable-uploads/f06dd398-3fe1-400c-b402-f4b361db1465.png" 
                   alt="Soulseer Logo" 
-                  className="w-16 h-16 animate-glow"
+                  className="w-20 h-20 animate-glow"
                 />
               </div>
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400/20 to-pink-400/20 animate-spin-slow"></div>
@@ -48,19 +48,19 @@ const TarotCard = ({ card, interpretation, isRevealed, onReveal }: TarotCardProp
               <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-500 rounded-full animate-pulse"></div>
               <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-pink-500 rounded-full animate-pulse delay-1000"></div>
             </div>
-            <CardTitle className="text-white text-lg">{card.name}</CardTitle>
-            <CardDescription className="text-purple-200">
+            <CardTitle className="text-white text-lg transform rotate-0">{card.name}</CardTitle>
+            <CardDescription className="text-purple-200 transform rotate-0">
               {card.meaning}
             </CardDescription>
           </CardHeader>
           
           <CardContent className="text-center">
-            <p className="text-purple-100 mb-4 text-sm leading-relaxed">{interpretation}</p>
+            <p className="text-purple-100 mb-4 text-sm leading-relaxed transform rotate-0">{interpretation}</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {card.keywords.map((keyword) => (
                 <span 
                   key={keyword}
-                  className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-200 px-2 py-1 rounded-full text-xs border border-purple-400/20 backdrop-blur-sm"
+                  className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-200 px-2 py-1 rounded-full text-xs border border-purple-400/20 backdrop-blur-sm transform rotate-0"
                 >
                   {keyword}
                 </span>
