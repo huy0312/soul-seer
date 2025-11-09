@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, MicOff, Send, Volume2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { VoiceStatus } from '@/components/game/VoiceStatus';
 import type { Database } from '@/integrations/supabase/types';
 
 type Player = Database['public']['Tables']['players']['Row'];
@@ -33,11 +34,34 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
   const otherPlayerIds = players.map((p) => p.id).filter((id) => id !== currentPlayerId);
 
   // Use voice chat hook
-  const { isMicOn, isConnected, toggleMic } = useVoiceChat({
+  const { isMicOn, isConnected, toggleMic, localStream, remoteStreams } = useVoiceChat({
     gameId,
     currentPlayerId,
     otherPlayerIds,
   });
+
+  // Broadcast mic status when it changes
+  useEffect(() => {
+    const channelName = `voice-status:${gameId}`;
+    const channel = supabase.channel(channelName);
+    channel
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'mic-status',
+            payload: {
+              playerId: currentPlayerId,
+              isMicOn,
+            },
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isMicOn, gameId, currentPlayerId]);
 
   useEffect(() => {
     // Load initial messages
@@ -148,8 +172,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
 
 
   return (
-    <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full flex flex-col">
-      <CardHeader className="pb-3">
+    <>
+      <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full flex flex-col">
+        <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Chat</span>
           <div className="flex items-center gap-2">
@@ -248,6 +273,14 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
         </div>
       </CardContent>
     </Card>
+    <VoiceStatus
+      gameId={gameId}
+      currentPlayerId={currentPlayerId}
+      players={players}
+      localStream={localStream}
+      remoteStreams={remoteStreams}
+    />
+    </>
   );
 };
 

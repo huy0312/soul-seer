@@ -254,10 +254,23 @@ export const useVoiceChat = ({ gameId, currentPlayerId, otherPlayerIds }: VoiceC
     });
   }, [otherPlayerIds, isMicOn, currentPlayerId]);
 
+  // Get remote streams from audio elements
+  const getRemoteStreams = (): Map<string, MediaStream> => {
+    const streams = new Map<string, MediaStream>();
+    audioElementsRef.current.forEach((audio, playerId) => {
+      if (audio.srcObject instanceof MediaStream) {
+        streams.set(playerId, audio.srcObject);
+      }
+    });
+    return streams;
+  };
+
   return {
     isMicOn,
     isConnected,
     toggleMic,
+    localStream: localStreamRef.current,
+    remoteStreams: getRemoteStreams(),
   };
 };
 
