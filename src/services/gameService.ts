@@ -360,8 +360,9 @@ export function subscribeToGame(
   gameId: string,
   callback: (game: Game) => void
 ): () => void {
+  const channelName = `game:${gameId}:${Date.now()}`;
   const channel = supabase
-    .channel(`game:${gameId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
@@ -371,12 +372,23 @@ export function subscribeToGame(
         filter: `id=eq.${gameId}`,
       },
       (payload) => {
+        console.log('Game changed:', payload);
         if (payload.new) {
           callback(payload.new as Game);
         }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Game subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        // Immediately fetch game when subscribed
+        getGameById(gameId).then(({ game: gameData, error }) => {
+          if (!error && gameData) {
+            callback(gameData);
+          }
+        });
+      }
+    });
 
   return () => {
     supabase.removeChannel(channel);
@@ -388,8 +400,9 @@ export function subscribeToPlayers(
   gameId: string,
   callback: (players: Player[]) => void
 ): () => void {
+  const channelName = `players:${gameId}:${Date.now()}`;
   const channel = supabase
-    .channel(`players:${gameId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
@@ -398,12 +411,26 @@ export function subscribeToPlayers(
         table: 'players',
         filter: `game_id=eq.${gameId}`,
       },
-      async () => {
-        const { players: playersData } = await getPlayers(gameId);
-        if (playersData) callback(playersData);
+      async (payload) => {
+        console.log('Players changed:', payload);
+        // Fetch fresh data when any change occurs
+        const { players: playersData, error } = await getPlayers(gameId);
+        if (!error && playersData) {
+          callback(playersData);
+        }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        // Immediately fetch players when subscribed
+        getPlayers(gameId).then(({ players: playersData, error }) => {
+          if (!error && playersData) {
+            callback(playersData);
+          }
+        });
+      }
+    });
 
   return () => {
     supabase.removeChannel(channel);

@@ -33,6 +33,10 @@ const GameLobby = () => {
       return;
     }
 
+    let unsubscribeGame: (() => void) | null = null;
+    let unsubscribePlayers: (() => void) | null = null;
+    let pollingInterval: NodeJS.Timeout | null = null;
+
     const loadGame = async () => {
       try {
         const { game: gameData, error: gameError } = await getGameByCode(code);
@@ -42,12 +46,18 @@ const GameLobby = () => {
 
         setGame(gameData);
 
-        const { players: playersData, error: playersError } = await getPlayers(gameData.id);
-        if (playersError) throw playersError;
-        setPlayers(playersData || []);
+        const refreshPlayers = async () => {
+          const { players: playersData, error: playersError } = await getPlayers(gameData.id);
+          if (!playersError && playersData) {
+            setPlayers(playersData);
+          }
+        };
+
+        // Load initial players
+        await refreshPlayers();
 
         // Subscribe to game changes
-        const unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
+        unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
           setGame(updatedGame);
           if (updatedGame.status === 'playing') {
             navigate(`/game/room/${code}`);
@@ -55,16 +65,14 @@ const GameLobby = () => {
         });
 
         // Subscribe to players changes
-        const unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
+        unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
           setPlayers(updatedPlayers);
         });
 
-        setLoading(false);
+        // Polling fallback - refresh players every 2 seconds
+        pollingInterval = setInterval(refreshPlayers, 2000);
 
-        return () => {
-          unsubscribeGame();
-          unsubscribePlayers();
-        };
+        setLoading(false);
       } catch (error) {
         toast({
           title: 'Lỗi',
@@ -76,6 +84,12 @@ const GameLobby = () => {
     };
 
     loadGame();
+
+    return () => {
+      if (unsubscribeGame) unsubscribeGame();
+      if (unsubscribePlayers) unsubscribePlayers();
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [code, navigate]);
 
   const handleStartGame = async () => {

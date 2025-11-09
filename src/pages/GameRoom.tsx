@@ -44,6 +44,10 @@ const GameRoom = () => {
       return;
     }
 
+    let unsubscribeGame: (() => void) | null = null;
+    let unsubscribePlayers: (() => void) | null = null;
+    let pollingInterval: NodeJS.Timeout | null = null;
+
     const loadGame = async () => {
       try {
         const { game: gameData, error: gameError } = await getGameByCode(code);
@@ -63,10 +67,6 @@ const GameRoom = () => {
 
         setGame(gameData);
 
-        const { players: playersData, error: playersError } = await getPlayers(gameData.id);
-        if (playersError) throw playersError;
-        setPlayers(playersData || []);
-
         // Get current player from localStorage
         const storedPlayerId = localStorage.getItem(`player_${code}`);
         if (storedPlayerId) {
@@ -76,6 +76,16 @@ const GameRoom = () => {
           navigate(`/game/lobby/${code}`);
           return;
         }
+
+        const refreshPlayers = async () => {
+          const { players: playersData, error: playersError } = await getPlayers(gameData.id);
+          if (!playersError && playersData) {
+            setPlayers(playersData);
+          }
+        };
+
+        // Load initial players
+        await refreshPlayers();
 
         // Load questions for current round
         if (gameData.current_round) {
@@ -87,7 +97,7 @@ const GameRoom = () => {
           setQuestions(questionsData || []);
 
           // Load player answers for current question
-          if (questionsData && questionsData.length > 0) {
+          if (questionsData && questionsData.length > 0 && storedPlayerId) {
             const currentQuestion = questionsData[0];
             const { answer } = await getAnswer(storedPlayerId, currentQuestion.id);
             if (answer) {
@@ -97,7 +107,7 @@ const GameRoom = () => {
         }
 
         // Subscribe to game changes
-        const unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
+        unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
           setGame(updatedGame);
           if (updatedGame.status === 'finished') {
             navigate(`/game/results/${code}`);
@@ -105,16 +115,14 @@ const GameRoom = () => {
         });
 
         // Subscribe to players changes
-        const unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
+        unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
           setPlayers(updatedPlayers);
         });
 
-        setLoading(false);
+        // Polling fallback - refresh players every 2 seconds
+        pollingInterval = setInterval(refreshPlayers, 2000);
 
-        return () => {
-          unsubscribeGame();
-          unsubscribePlayers();
-        };
+        setLoading(false);
       } catch (error) {
         toast({
           title: 'Lỗi',
@@ -126,6 +134,12 @@ const GameRoom = () => {
     };
 
     loadGame();
+
+    return () => {
+      if (unsubscribeGame) unsubscribeGame();
+      if (unsubscribePlayers) unsubscribePlayers();
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [code, navigate]);
 
   const handleSubmitAnswer = async (answer: string) => {
