@@ -40,6 +40,7 @@ const GameLobby = () => {
     let unsubscribeGame: (() => void) | null = null;
     let unsubscribePlayers: (() => void) | null = null;
     let pollingInterval: NodeJS.Timeout | null = null;
+    let gameStatusInterval: NodeJS.Timeout | null = null;
 
     const loadGame = async () => {
       try {
@@ -85,19 +86,46 @@ const GameLobby = () => {
 
         // Subscribe to game changes
         unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
+          console.log('Game status changed:', updatedGame.status);
           setGame(updatedGame);
           if (updatedGame.status === 'playing') {
-            navigate(`/game/room/${code}`);
+            const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
+            if (isHost) {
+              navigate(`/game/host/${code}`);
+            } else {
+              navigate(`/game/room/${code}`);
+            }
           }
         });
 
         // Subscribe to players changes
         unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
           setPlayers(updatedPlayers);
+          // Update isHost status if needed
+          const storedPlayerId = localStorage.getItem(`player_${code}`);
+          if (storedPlayerId) {
+            const currentPlayer = updatedPlayers.find((p) => p.id === storedPlayerId);
+            if (currentPlayer?.is_host) {
+              setIsHost(true);
+            }
+          }
         });
 
         // Polling fallback - refresh players every 2 seconds
         pollingInterval = setInterval(refreshPlayers, 2000);
+
+        // Polling fallback for game status - check every 1 second
+        gameStatusInterval = setInterval(async () => {
+          const { game: currentGame } = await getGameByCode(code);
+          if (currentGame && currentGame.status === 'playing' && gameData.status === 'waiting') {
+            const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
+            if (isHost) {
+              navigate(`/game/host/${code}`);
+            } else {
+              navigate(`/game/room/${code}`);
+            }
+          }
+        }, 1000);
 
         setLoading(false);
       } catch (error) {
@@ -116,6 +144,7 @@ const GameLobby = () => {
       if (unsubscribeGame) unsubscribeGame();
       if (unsubscribePlayers) unsubscribePlayers();
       if (pollingInterval) clearInterval(pollingInterval);
+      if (gameStatusInterval) clearInterval(gameStatusInterval);
     };
   }, [code, navigate]);
 

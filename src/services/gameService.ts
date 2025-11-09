@@ -392,23 +392,34 @@ export function subscribeToGame(
       (payload) => {
         console.log('Game changed:', payload);
         if (payload.new) {
-          callback(payload.new as Game);
+          const updatedGame = payload.new as Game;
+          console.log('Updated game status:', updatedGame.status);
+          callback(updatedGame);
         }
       }
     )
     .subscribe((status) => {
       console.log('Game subscription status:', status);
       if (status === 'SUBSCRIBED') {
+        console.log('Successfully subscribed to game changes');
         // Immediately fetch game when subscribed
         getGameById(gameId).then(({ game: gameData, error }) => {
           if (!error && gameData) {
+            console.log('Initial game state:', gameData.status);
             callback(gameData);
           }
         });
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('Channel error occurred');
+      } else if (status === 'TIMED_OUT') {
+        console.error('Subscription timed out');
+      } else if (status === 'CLOSED') {
+        console.log('Channel closed');
       }
     });
 
   return () => {
+    console.log('Unsubscribing from game changes');
     supabase.removeChannel(channel);
   };
 }

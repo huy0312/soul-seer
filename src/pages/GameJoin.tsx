@@ -52,6 +52,7 @@ const GameJoin = () => {
 
       // Store player ID in localStorage
       localStorage.setItem(`player_${gameCode.toUpperCase()}`, player.id);
+      localStorage.setItem(`is_host_${gameCode.toUpperCase()}`, player.is_host ? 'true' : 'false');
 
       toast({
         title: 'Tham gia thành công!',
