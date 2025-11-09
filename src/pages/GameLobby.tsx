@@ -109,9 +109,10 @@ const GameLobby = () => {
 
       toast({
         title: 'Game đã bắt đầu!',
-        description: 'Đang chuyển đến phòng game...',
+        description: 'Tất cả người chơi sẽ được chuyển vào phòng game...',
       });
 
+      // Navigate to game room - subscription will handle redirect for others
       navigate(`/game/room/${code}`);
     } catch (error) {
       toast({
@@ -179,7 +180,14 @@ const GameLobby = () => {
 
               {canStart && (
                 <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 space-y-4">
+                    <Button
+                      onClick={() => navigate(`/game/questions/${code}`)}
+                      variant="outline"
+                      className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    >
+                      Tạo câu hỏi
+                    </Button>
                     <Button
                       onClick={handleStartGame}
                       disabled={starting}
