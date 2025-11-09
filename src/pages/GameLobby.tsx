@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { QRCode } from '@/components/game/QRCode';
 import { GameCode } from '@/components/game/GameCode';
 import { PlayerList } from '@/components/game/PlayerList';
+import { ChatRoom } from '@/components/game/ChatRoom';
 import {
   getGameByCode,
   getPlayers,
@@ -209,7 +210,7 @@ const GameLobby = () => {
             <p className="text-xl text-blue-100">Mã game: {code}</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Game Info */}
             <div className="space-y-6">
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
@@ -321,6 +322,25 @@ const GameLobby = () => {
                 </Card>
               )}
             </div>
+
+            {/* Right Column - Chat */}
+            {game && (
+              <div className="h-[600px]">
+                {(() => {
+                  const storedPlayerId = localStorage.getItem(`player_${code}`);
+                  if (storedPlayerId) {
+                    return (
+                      <ChatRoom
+                        gameId={game.id}
+                        currentPlayerId={storedPlayerId}
+                        players={players.filter((p) => !p.is_host)}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
         </div>
       </div>

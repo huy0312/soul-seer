@@ -6,6 +6,7 @@ import { RoundDisplay } from '@/components/game/RoundDisplay';
 import { QuestionDisplay } from '@/components/game/QuestionDisplay';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import { PlayerList } from '@/components/game/PlayerList';
+import { ChatRoom } from '@/components/game/ChatRoom';
 import {
   getGameByCode,
   getPlayers,
@@ -276,7 +277,7 @@ const GameRoom = () => {
             <RoundDisplay currentRound={game.current_round} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Left Column - Question */}
             <div className="lg:col-span-2 space-y-6">
               <QuestionDisplay
@@ -321,15 +322,26 @@ const GameRoom = () => {
               </div>
             </div>
 
-            {/* Right Column - Scoreboard & Players */}
+            {/* Middle Column - Scoreboard & Players */}
             <div className="space-y-6">
-              <Scoreboard players={players} />
+              <Scoreboard players={players.filter((p) => !p.is_host)} />
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6">
-                  <PlayerList players={players} maxPlayers={4} />
+                  <PlayerList players={players.filter((p) => !p.is_host)} maxPlayers={4} />
                 </CardContent>
               </Card>
             </div>
+
+            {/* Right Column - Chat */}
+            {currentPlayerId && game && (
+              <div className="h-[600px]">
+                <ChatRoom
+                  gameId={game.id}
+                  currentPlayerId={currentPlayerId}
+                  players={players.filter((p) => !p.is_host)}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
