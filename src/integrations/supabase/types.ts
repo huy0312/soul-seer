@@ -106,6 +106,7 @@ export type Database = {
           name: string
           score: number
           position: number | null
+          is_host: boolean
           joined_at: string
           created_at: string
           updated_at: string
@@ -116,6 +117,7 @@ export type Database = {
           name: string
           score?: number
           position?: number | null
+          is_host?: boolean
           joined_at?: string
           created_at?: string
           updated_at?: string
@@ -126,6 +128,7 @@ export type Database = {
           name?: string
           score?: number
           position?: number | null
+          is_host?: boolean
           joined_at?: string
           created_at?: string
           updated_at?: string

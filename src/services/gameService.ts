@@ -38,7 +38,8 @@ export async function createGame(): Promise<{ game: Game | null; error: Error | 
 // Join a game by code
 export async function joinGame(
   code: string,
-  playerName: string
+  playerName: string,
+  isHost: boolean = false
 ): Promise<{ player: Player | null; error: Error | null }> {
   try {
     // First, find the game by code
@@ -56,15 +57,31 @@ export async function joinGame(
       throw new Error('Game has already started');
     }
 
-    // Check if game already has 4 players
+    // Check if game already has a host
+    if (isHost) {
+      const { data: existingHost } = await supabase
+        .from('players')
+        .select('id')
+        .eq('game_id', game.id)
+        .eq('is_host', true)
+        .single();
+
+      if (existingHost) {
+        throw new Error('Game already has a host');
+      }
+    }
+
+    // Check if game already has 4 players (excluding host)
     const { data: players, error: playersError } = await supabase
       .from('players')
-      .select('id')
+      .select('id, is_host')
       .eq('game_id', game.id);
 
     if (playersError) throw playersError;
 
-    if (players && players.length >= 4) {
+    // Count non-host players
+    const nonHostPlayers = players?.filter((p) => !p.is_host) || [];
+    if (!isHost && nonHostPlayers.length >= 4) {
       throw new Error('Game is full (4 players maximum)');
     }
 
@@ -87,6 +104,7 @@ export async function joinGame(
         game_id: game.id,
         name: playerName,
         score: 0,
+        is_host: isHost,
       })
       .select()
       .single();

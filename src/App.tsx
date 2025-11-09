@@ -9,6 +9,7 @@ import GameHome from "./pages/GameHome";
 import GameLobby from "./pages/GameLobby";
 import GameQuestions from "./pages/GameQuestions";
 import GameRoom from "./pages/GameRoom";
+import GameHost from "./pages/GameHost";
 import GameResults from "./pages/GameResults";
 import GameJoin from "./pages/GameJoin";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/game/lobby/:code" element={<GameLobby />} />
             <Route path="/game/questions/:code" element={<GameQuestions />} />
             <Route path="/game/room/:code" element={<GameRoom />} />
+            <Route path="/game/host/:code" element={<GameHost />} />
             <Route path="/game/results/:code" element={<GameResults />} />
             <Route path="/game/join/:code" element={<GameJoin />} />
             <Route path="/game/join" element={<GameJoin />} />

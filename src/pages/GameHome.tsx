@@ -35,14 +35,15 @@ const GameHome = () => {
         throw error || new Error('Không thể tạo game');
       }
 
-      // Join as first player
-      const { player, error: joinError } = await joinGame(game.code, playerName);
+      // Join as first player (host)
+      const { player, error: joinError } = await joinGame(game.code, playerName, true);
       if (joinError || !player) {
         throw joinError || new Error('Không thể tham gia game');
       }
 
-      // Store player ID in localStorage
+      // Store player ID and host status in localStorage
       localStorage.setItem(`player_${game.code}`, player.id);
+      localStorage.setItem(`is_host_${game.code}`, 'true');
 
       toast({
         title: 'Tạo game thành công!',

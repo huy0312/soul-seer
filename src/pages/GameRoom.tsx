@@ -69,7 +69,14 @@ const GameRoom = () => {
 
         // Get current player from localStorage
         const storedPlayerId = localStorage.getItem(`player_${code}`);
+        const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
+        
         if (storedPlayerId) {
+          // If host, redirect to host dashboard
+          if (isHost) {
+            navigate(`/game/host/${code}`);
+            return;
+          }
           setCurrentPlayerId(storedPlayerId);
         } else {
           // If no player ID, redirect to lobby

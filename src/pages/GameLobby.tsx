@@ -29,6 +29,7 @@ const GameLobby = () => {
   const [starting, setStarting] = useState(false);
   const [hasQuestions, setHasQuestions] = useState(false);
   const [checkingQuestions, setCheckingQuestions] = useState(true);
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     if (!code) {
@@ -58,6 +59,16 @@ const GameLobby = () => {
 
         // Load initial players
         await refreshPlayers();
+
+        // Check if current user is host
+        const storedPlayerId = localStorage.getItem(`player_${code}`);
+        if (storedPlayerId) {
+          const { players: allPlayers } = await getPlayers(gameData.id);
+          const currentPlayer = allPlayers?.find((p) => p.id === storedPlayerId);
+          if (currentPlayer?.is_host) {
+            setIsHost(true);
+          }
+        }
 
         // Check if game has questions
         const checkQuestions = async () => {
@@ -109,7 +120,8 @@ const GameLobby = () => {
   }, [code, navigate]);
 
   const handleStartGame = async () => {
-    if (!game || players.length < 2) {
+    const playingPlayers = players.filter((p) => !p.is_host);
+    if (!game || playingPlayers.length < 2) {
       toast({
         title: 'Lỗi',
         description: 'Cần ít nhất 2 người chơi để bắt đầu game',
@@ -128,8 +140,8 @@ const GameLobby = () => {
         description: 'Tất cả người chơi sẽ được chuyển vào phòng game...',
       });
 
-      // Navigate to game room - subscription will handle redirect for others
-      navigate(`/game/room/${code}`);
+      // Host goes to host dashboard, players go to game room
+      navigate(`/game/host/${code}`);
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -156,7 +168,8 @@ const GameLobby = () => {
     return null;
   }
 
-  const canStart = players.length >= 2 && players.length <= 4 && game.status === 'waiting';
+  const playingPlayers = players.filter((p) => !p.is_host);
+  const canStart = playingPlayers.length >= 2 && playingPlayers.length <= 4 && game.status === 'waiting';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">
@@ -190,13 +203,22 @@ const GameLobby = () => {
             <div className="space-y-6">
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6">
-                  <PlayerList players={players} maxPlayers={4} />
+                  <PlayerList 
+                    players={players.filter((p) => !p.is_host)} 
+                    maxPlayers={4} 
+                  />
                 </CardContent>
               </Card>
 
-              {canStart && (
+              {/* Host controls - only visible to host */}
+              {isHost && canStart && (
                 <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                   <CardContent className="p-6 space-y-4">
+                    <div className="mb-4 p-3 bg-blue-500/20 rounded-lg border border-blue-300/20">
+                      <p className="text-blue-200 text-sm font-semibold">
+                        👑 Bạn là người tổ chức game
+                      </p>
+                    </div>
                     {!checkingQuestions && !hasQuestions && (
                       <div className="mb-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-300/20">
                         <p className="text-yellow-200 text-sm mb-3">
@@ -219,7 +241,7 @@ const GameLobby = () => {
                         size="lg"
                       >
                         <Play className="h-5 w-5 mr-2" />
-                        {starting ? 'Đang bắt đầu...' : 'Host game'}
+                        {starting ? 'Đang bắt đầu...' : 'Bắt đầu game'}
                       </Button>
                     )}
                     {!checkingQuestions && hasQuestions && (
@@ -235,7 +257,21 @@ const GameLobby = () => {
                 </Card>
               )}
 
-              {players.length < 2 && (
+              {/* Non-host waiting message */}
+              {!isHost && game?.status === 'waiting' && (
+                <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <p className="text-blue-200 mb-2">⏳ Đang chờ người tổ chức bắt đầu game...</p>
+                      <p className="text-blue-300 text-sm">
+                        Người tổ chức sẽ bắt đầu game khi đã sẵn sàng
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {playingPlayers.length < 2 && (
                 <Card className="bg-yellow-500/20 backdrop-blur-lg border-yellow-300/20">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 text-yellow-200">
@@ -246,7 +282,7 @@ const GameLobby = () => {
                 </Card>
               )}
 
-              {players.length > 4 && (
+              {playingPlayers.length > 4 && (
                 <Card className="bg-red-500/20 backdrop-blur-lg border-red-300/20">
                   <CardContent className="p-6">
                     <p className="text-red-200">
