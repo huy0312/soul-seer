@@ -44,11 +44,13 @@ const GameHome = () => {
       // Store player ID in localStorage
       localStorage.setItem(`player_${game.code}`, player.id);
 
-      setCreatedGameCode(game.code);
       toast({
         title: 'Tạo game thành công!',
-        description: `Mã game: ${game.code}`,
+        description: 'Bây giờ hãy tạo câu hỏi cho game',
       });
+
+      // Navigate to questions page
+      navigate(`/game/questions/${game.code}`);
     } catch (error) {
       toast({
         title: 'Lỗi',

@@ -163,7 +163,7 @@ const GameQuestions = () => {
 
       toast({
         title: 'Thành công!',
-        description: `Đã tạo ${allQuestions.length} câu hỏi cho game`,
+        description: `Đã tạo ${allQuestions.length} câu hỏi cho game. Bây giờ bạn có thể vào phòng chờ và host game.`,
       });
 
       navigate(`/game/lobby/${code}`);

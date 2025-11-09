@@ -8,6 +8,7 @@ import { PlayerList } from '@/components/game/PlayerList';
 import {
   getGameByCode,
   getPlayers,
+  getQuestions,
   startGame,
   subscribeToGame,
   subscribeToPlayers,
@@ -26,6 +27,8 @@ const GameLobby = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [hasQuestions, setHasQuestions] = useState(false);
+  const [checkingQuestions, setCheckingQuestions] = useState(true);
 
   useEffect(() => {
     if (!code) {
@@ -55,6 +58,19 @@ const GameLobby = () => {
 
         // Load initial players
         await refreshPlayers();
+
+        // Check if game has questions
+        const checkQuestions = async () => {
+          const { questions: questionsData, error: questionsError } = await getQuestions(
+            gameData.id,
+            'khoi_dong'
+          );
+          if (!questionsError && questionsData && questionsData.length > 0) {
+            setHasQuestions(true);
+          }
+          setCheckingQuestions(false);
+        };
+        await checkQuestions();
 
         // Subscribe to game changes
         unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
@@ -181,22 +197,40 @@ const GameLobby = () => {
               {canStart && (
                 <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                   <CardContent className="p-6 space-y-4">
-                    <Button
-                      onClick={() => navigate(`/game/questions/${code}`)}
-                      variant="outline"
-                      className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    >
-                      Tạo câu hỏi
-                    </Button>
-                    <Button
-                      onClick={handleStartGame}
-                      disabled={starting}
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Play className="h-5 w-5 mr-2" />
-                      {starting ? 'Đang bắt đầu...' : 'Bắt đầu game'}
-                    </Button>
+                    {!checkingQuestions && !hasQuestions && (
+                      <div className="mb-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-300/20">
+                        <p className="text-yellow-200 text-sm mb-3">
+                          ⚠️ Bạn cần tạo câu hỏi trước khi host game
+                        </p>
+                        <Button
+                          onClick={() => navigate(`/game/questions/${code}`)}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          size="lg"
+                        >
+                          Tạo câu hỏi cho 4 phần thi
+                        </Button>
+                      </div>
+                    )}
+                    {!checkingQuestions && hasQuestions && (
+                      <Button
+                        onClick={handleStartGame}
+                        disabled={starting}
+                        className="w-full"
+                        size="lg"
+                      >
+                        <Play className="h-5 w-5 mr-2" />
+                        {starting ? 'Đang bắt đầu...' : 'Host game'}
+                      </Button>
+                    )}
+                    {!checkingQuestions && hasQuestions && (
+                      <Button
+                        onClick={() => navigate(`/game/questions/${code}`)}
+                        variant="outline"
+                        className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      >
+                        Chỉnh sửa câu hỏi
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               )}
