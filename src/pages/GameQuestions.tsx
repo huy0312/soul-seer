@@ -134,18 +134,30 @@ const GameQuestions = () => {
       const roundQuestions = questions[round];
       for (let i = 0; i < roundQuestions.length; i++) {
         const q = roundQuestions[i];
-        if (!q.question_text.trim() || !q.correct_answer.trim()) {
+        
+        // Basic validation: question text and correct answer
+        if (!q.question_text || !q.question_text.trim()) {
           toast({
             title: 'Lỗi',
-            description: `Vui lòng điền đầy đủ câu hỏi và đáp án cho ${roundLabels[round]} - Câu ${i + 1}`,
+            description: `Vui lòng điền câu hỏi cho ${roundLabels[round]} - Câu ${i + 1}`,
             variant: 'destructive',
           });
           return;
         }
-        // Validate options for round 1 (Khởi động)
-        if (round === 'khoi_dong' && q.options) {
-          const emptyOptions = q.options.filter((opt) => !opt.trim());
-          if (emptyOptions.length > 0) {
+        
+        if (!q.correct_answer || !q.correct_answer.trim()) {
+          toast({
+            title: 'Lỗi',
+            description: `Vui lòng điền đáp án đúng cho ${roundLabels[round]} - Câu ${i + 1}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Validate options for round 1 (Khởi động) - REQUIRED
+        if (round === 'khoi_dong') {
+          // Options are required for round 1
+          if (!q.options || !Array.isArray(q.options) || q.options.length !== 4) {
             toast({
               title: 'Lỗi',
               description: `Vui lòng điền đầy đủ 4 đáp án cho ${roundLabels[round]} - Câu ${i + 1}`,
@@ -153,11 +165,27 @@ const GameQuestions = () => {
             });
             return;
           }
-          // Check if correct_answer is in options
-          if (!q.options.includes(q.correct_answer)) {
+          
+          // Check for empty options
+          const trimmedOptions = q.options.map((opt) => (opt || '').trim());
+          const emptyOptions = trimmedOptions.filter((opt) => !opt);
+          if (emptyOptions.length > 0) {
             toast({
               title: 'Lỗi',
-              description: `Đáp án đúng phải là một trong 4 đáp án đã nhập cho ${roundLabels[round]} - Câu ${i + 1}`,
+              description: `Vui lòng điền đầy đủ 4 đáp án (không được để trống) cho ${roundLabels[round]} - Câu ${i + 1}`,
+              variant: 'destructive',
+            });
+            return;
+          }
+          
+          // Check if correct_answer matches one of the options (case-insensitive, trimmed)
+          const trimmedCorrectAnswer = q.correct_answer.trim();
+          const matchesOption = trimmedOptions.some((opt) => opt.toLowerCase() === trimmedCorrectAnswer.toLowerCase());
+          
+          if (!matchesOption) {
+            toast({
+              title: 'Lỗi',
+              description: `Đáp án đúng phải là một trong 4 đáp án đã nhập cho ${roundLabels[round]} - Câu ${i + 1}. Đáp án hiện tại: "${trimmedCorrectAnswer}"`,
               variant: 'destructive',
             });
             return;
