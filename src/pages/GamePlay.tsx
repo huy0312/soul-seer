@@ -243,8 +243,8 @@ const GamePlay = () => {
               players={playingPlayers}
               currentPlayerId={currentPlayerId}
               onSubmitAnswer={(questionId, answer) => handleSubmitAnswer(questionId, answer)}
-              onNextQuestion={handleNextQuestion}
               onRoundComplete={handleRoundComplete}
+              timeLimit={60} // 60 seconds for round 1
             />
           )}
 

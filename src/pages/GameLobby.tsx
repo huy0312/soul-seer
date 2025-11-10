@@ -86,12 +86,16 @@ const GameLobby = () => {
         };
         await checkQuestions();
 
-        // Subscribe to game changes
+        // Subscribe to game changes - realtime update for all players
         unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
           console.log('Game status changed:', updatedGame.status);
           setGame(updatedGame);
+          // When game starts, all players (including host) automatically navigate to intro
           if (updatedGame.status === 'playing') {
-            navigate(`/game/intro/${code}`);
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+              navigate(`/game/intro/${code}`);
+            }, 100);
           }
         });
 
@@ -111,13 +115,16 @@ const GameLobby = () => {
         // Polling fallback - refresh players every 2 seconds
         pollingInterval = setInterval(refreshPlayers, 2000);
 
-        // Polling fallback for game status - check every 1 second
+        // Polling fallback for game status - check every 500ms for faster response
         gameStatusInterval = setInterval(async () => {
           const { game: currentGame } = await getGameByCode(code);
           if (currentGame && currentGame.status === 'playing' && gameData.status === 'waiting') {
+            // Update local state first
+            setGame(currentGame);
+            // Navigate to intro screen
             navigate(`/game/intro/${code}`);
           }
-        }, 1000);
+        }, 500);
 
         setLoading(false);
       } catch (error) {
@@ -157,12 +164,15 @@ const GameLobby = () => {
       if (error) throw error;
 
       toast({
-        title: 'Game đã bắt đầu!',
-        description: 'Tất cả thí sinh sẽ được chuyển vào màn hình giới thiệu...',
+        title: 'Cuộc thi đã bắt đầu!',
+        description: 'Tất cả thí sinh sẽ tự động được chuyển vào màn hình chơi...',
       });
 
-      // Navigate to intro screen first
-      navigate(`/game/intro/${code}`);
+      // Host also navigates to intro screen
+      // Other players will be automatically redirected via subscription
+      setTimeout(() => {
+        navigate(`/game/intro/${code}`);
+      }, 300);
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -280,11 +290,11 @@ const GameLobby = () => {
                       <Button
                         onClick={handleStartGame}
                         disabled={starting}
-                        className="w-full"
+                        className="w-full bg-green-600 hover:bg-green-700"
                         size="lg"
                       >
                         <Play className="h-5 w-5 mr-2" />
-                        {starting ? 'Đang bắt đầu...' : 'Bắt đầu game'}
+                        {starting ? 'Đang bắt đầu...' : 'Bắt đầu cuộc thi'}
                       </Button>
                     )}
                     {!checkingQuestions && hasQuestions && (
@@ -300,15 +310,22 @@ const GameLobby = () => {
                 </Card>
               )}
 
-              {/* Non-host waiting message */}
+              {/* Non-host waiting message - NO START BUTTON */}
               {!isHost && game?.status === 'waiting' && (
                 <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <p className="text-blue-200 mb-2">⏳ Đang chờ người tổ chức bắt đầu game...</p>
-                      <p className="text-blue-300 text-sm">
-                        Người tổ chức sẽ bắt đầu game khi đã sẵn sàng
+                      <p className="text-blue-200 mb-2 text-lg font-semibold">
+                        ⏳ Đang chờ người tổ chức bắt đầu cuộc thi...
                       </p>
+                      <p className="text-blue-300 text-sm">
+                        Bạn sẽ tự động được chuyển vào màn hình chơi khi người tổ chức bấm "Bắt đầu cuộc thi"
+                      </p>
+                      <div className="mt-4 flex items-center justify-center gap-2">
+                        <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.4s' }}></div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

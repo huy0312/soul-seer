@@ -208,10 +208,27 @@ export async function createQuestions(
     correct_answer: string;
     points: number;
     order_index: number;
+    options?: string | null;
   }>
 ): Promise<{ error: Error | null }> {
   try {
-    const questionsWithGameId = questions.map((q) => ({ ...q, game_id: gameId }));
+    const questionsWithGameId = questions.map((q) => {
+      const questionData: any = {
+        ...q,
+        game_id: gameId,
+      };
+      // Parse options if it's a string (JSON)
+      if (q.options && typeof q.options === 'string') {
+        try {
+          questionData.options = JSON.parse(q.options);
+        } catch {
+          questionData.options = q.options;
+        }
+      } else if (q.options) {
+        questionData.options = q.options;
+      }
+      return questionData;
+    });
     const { error } = await supabase.from('questions').insert(questionsWithGameId);
 
     if (error) throw error;

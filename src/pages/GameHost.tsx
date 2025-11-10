@@ -8,9 +8,13 @@ import {
   getGameByCode,
   getPlayers,
   getQuestions,
+  nextRound,
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
+import type { RoundType } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import { Crown, Users } from 'lucide-react';
@@ -120,6 +124,33 @@ const GameHost = () => {
 
   const playingPlayers = players.filter((p) => !p.is_host);
 
+  const handleNextRound = async () => {
+    if (!game || !game.current_round) return;
+
+    const roundOrder: RoundType[] = ['khoi_dong', 'vuot_chuong_ngai_vat', 'tang_toc', 've_dich'];
+    const currentIndex = roundOrder.indexOf(game.current_round);
+
+    if (currentIndex < roundOrder.length - 1) {
+      try {
+        const { error } = await nextRound(game.id, game.current_round);
+        if (error) throw error;
+
+        toast({
+          title: 'Chuyển phần thi',
+          description: `Đã chuyển sang ${roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' ? 'Vượt chướng ngại vật' : roundOrder[currentIndex + 1] === 'tang_toc' ? 'Tăng tốc' : 'Về đích'}`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error ? error.message : 'Không thể chuyển sang vòng tiếp theo',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const canMoveToNextRound = game?.current_round && game.current_round !== 've_dich';
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">
       <div className="container mx-auto px-4 py-8">
@@ -165,20 +196,34 @@ const GameHost = () => {
 
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6">
-                  <div className="space-y-2 text-sm">
-                    <p className="text-blue-200">
-                      <strong>Trạng thái:</strong> {game.status === 'playing' ? 'Đang chơi' : 'Đã kết thúc'}
-                    </p>
-                    <p className="text-blue-200">
-                      <strong>Vòng hiện tại:</strong>{' '}
-                      {game.current_round === 'khoi_dong'
-                        ? 'Khởi động'
-                        : game.current_round === 'vuot_chuong_ngai_vat'
-                          ? 'Vượt chướng ngại vật'
-                          : game.current_round === 'tang_toc'
-                            ? 'Tăng tốc'
-                            : 'Về đích'}
-                    </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2 text-sm">
+                      <p className="text-blue-200">
+                        <strong>Trạng thái:</strong> {game.status === 'playing' ? 'Đang chơi' : 'Đã kết thúc'}
+                      </p>
+                      <p className="text-blue-200">
+                        <strong>Vòng hiện tại:</strong>{' '}
+                        {game.current_round === 'khoi_dong'
+                          ? 'Khởi động'
+                          : game.current_round === 'vuot_chuong_ngai_vat'
+                            ? 'Vượt chướng ngại vật'
+                            : game.current_round === 'tang_toc'
+                              ? 'Tăng tốc'
+                              : 'Về đích'}
+                      </p>
+                    </div>
+
+                    {/* Next Round Button */}
+                    {canMoveToNextRound && game.status === 'playing' && (
+                      <Button
+                        onClick={handleNextRound}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        size="lg"
+                      >
+                        <ArrowRight className="h-5 w-5 mr-2" />
+                        Chuyển sang phần thi tiếp theo
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

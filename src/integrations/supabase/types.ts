@@ -155,6 +155,7 @@ export type Database = {
           hang_ngang_index: number | null
           goi_diem: number | null
           hint: string | null
+          options: string[] | null
           created_at: string
         }
         Insert: {
@@ -169,6 +170,7 @@ export type Database = {
           hang_ngang_index?: number | null
           goi_diem?: number | null
           hint?: string | null
+          options?: string[] | null
           created_at?: string
         }
         Update: {
@@ -183,6 +185,7 @@ export type Database = {
           hang_ngang_index?: number | null
           goi_diem?: number | null
           hint?: string | null
+          options?: string[] | null
           created_at?: string
         }
         Relationships: [

@@ -20,6 +20,7 @@ interface Question {
   hang_ngang_index?: number | null;
   goi_diem?: number | null;
   hint?: string | null;
+  options?: string[] | null; // For multiple choice questions (4 options)
 }
 
 const roundLabels: Record<RoundType, string> = {
@@ -77,6 +78,7 @@ const GameQuestions = () => {
       correct_answer: '',
       points: 10,
       order_index: roundQuestions.length + 1,
+      options: round === 'khoi_dong' ? ['', '', '', ''] : null, // Add 4 empty options for round 1
     };
     setQuestions({
       ...questions,
@@ -97,11 +99,26 @@ const GameQuestions = () => {
     });
   };
 
-  const updateQuestion = (round: RoundType, index: number, field: keyof Question, value: string | number) => {
+  const updateQuestion = (round: RoundType, index: number, field: keyof Question, value: string | number | string[]) => {
     const roundQuestions = [...questions[round]];
     roundQuestions[index] = {
       ...roundQuestions[index],
       [field]: value,
+    };
+    setQuestions({
+      ...questions,
+      [round]: roundQuestions,
+    });
+  };
+
+  const updateQuestionOption = (round: RoundType, index: number, optionIndex: number, value: string) => {
+    const roundQuestions = [...questions[round]];
+    const question = roundQuestions[index];
+    const options = question.options ? [...question.options] : ['', '', '', ''];
+    options[optionIndex] = value;
+    roundQuestions[index] = {
+      ...question,
+      options,
     };
     setQuestions({
       ...questions,
@@ -124,6 +141,27 @@ const GameQuestions = () => {
             variant: 'destructive',
           });
           return;
+        }
+        // Validate options for round 1 (Khởi động)
+        if (round === 'khoi_dong' && q.options) {
+          const emptyOptions = q.options.filter((opt) => !opt.trim());
+          if (emptyOptions.length > 0) {
+            toast({
+              title: 'Lỗi',
+              description: `Vui lòng điền đầy đủ 4 đáp án cho ${roundLabels[round]} - Câu ${i + 1}`,
+              variant: 'destructive',
+            });
+            return;
+          }
+          // Check if correct_answer is in options
+          if (!q.options.includes(q.correct_answer)) {
+            toast({
+              title: 'Lỗi',
+              description: `Đáp án đúng phải là một trong 4 đáp án đã nhập cho ${roundLabels[round]} - Câu ${i + 1}`,
+              variant: 'destructive',
+            });
+            return;
+          }
         }
       }
     }
@@ -148,6 +186,7 @@ const GameQuestions = () => {
             correct_answer: q.correct_answer.trim(),
             points: q.points,
             order_index: q.order_index,
+            options: round === 'khoi_dong' && q.options ? JSON.stringify(q.options) : null,
           });
         }
       }
@@ -291,21 +330,66 @@ const GameQuestions = () => {
                                   />
                                 </div>
 
+                                {/* Options for Round 1 (Khởi động) - Multiple Choice */}
+                                {round === 'khoi_dong' && (
+                                  <div>
+                                    <Label className="text-white mb-2 block">
+                                      4 Đáp án (Chọn một trong 4 đáp án làm đáp án đúng)
+                                    </Label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      {['A', 'B', 'C', 'D'].map((label, optIndex) => (
+                                        <div key={optIndex} className="flex items-center gap-2">
+                                          <span className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                                            {label}
+                                          </span>
+                                          <Input
+                                            type="text"
+                                            value={question.options?.[optIndex] || ''}
+                                            onChange={(e) =>
+                                              updateQuestionOption(round, index, optIndex, e.target.value)
+                                            }
+                                            placeholder={`Đáp án ${label}...`}
+                                            className="bg-white text-gray-800 flex-1"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div>
                                     <Label htmlFor={`answer-${round}-${index}`} className="text-white mb-2">
-                                      Đáp án đúng
+                                      Đáp án đúng {round === 'khoi_dong' && '(Chọn từ 4 đáp án trên)'}
                                     </Label>
-                                    <Input
-                                      id={`answer-${round}-${index}`}
-                                      type="text"
-                                      value={question.correct_answer}
-                                      onChange={(e) =>
-                                        updateQuestion(round, index, 'correct_answer', e.target.value)
-                                      }
-                                      placeholder="Nhập đáp án đúng..."
-                                      className="bg-white text-gray-800"
-                                    />
+                                    {round === 'khoi_dong' && question.options ? (
+                                      <select
+                                        id={`answer-${round}-${index}`}
+                                        value={question.correct_answer}
+                                        onChange={(e) =>
+                                          updateQuestion(round, index, 'correct_answer', e.target.value)
+                                        }
+                                        className="w-full px-3 py-2 bg-white text-gray-800 rounded-md border border-gray-300"
+                                      >
+                                        <option value="">Chọn đáp án đúng...</option>
+                                        {question.options.map((opt, optIndex) => (
+                                          <option key={optIndex} value={opt}>
+                                            {String.fromCharCode(65 + optIndex)}: {opt}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <Input
+                                        id={`answer-${round}-${index}`}
+                                        type="text"
+                                        value={question.correct_answer}
+                                        onChange={(e) =>
+                                          updateQuestion(round, index, 'correct_answer', e.target.value)
+                                        }
+                                        placeholder="Nhập đáp án đúng..."
+                                        className="bg-white text-gray-800"
+                                      />
+                                    )}
                                   </div>
 
                                   <div>
