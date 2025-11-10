@@ -7,8 +7,9 @@ import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { getVCNVState, revealHangNgang, awardPoints } from '@/services/gameService';
+import { getVCNVState, revealHangNgang, awardPoints, getGameById } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
+import VCNVBoard from '@/components/game/VCNVBoard';
 
 type Question = Database['public']['Tables']['questions']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
@@ -40,6 +41,8 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const [answer, setAnswer] = useState('');
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [eliminatedPlayers, setEliminatedPlayers] = useState<Set<string>>(new Set());
+  const [boardCols, setBoardCols] = useState<number>(8);
+  const [boardWords, setBoardWords] = useState<[string, string, string, string]>(['', '', '', '']);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -51,6 +54,18 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
+      // Load board config from games.vcnv_config
+      try {
+        const { game } = await getGameById(gameId);
+        const cfg: any = (game as any)?.vcnv_config;
+        if (cfg) {
+          if (cfg.cols) setBoardCols(Number(cfg.cols) || 8);
+          if (Array.isArray(cfg.words) && cfg.words.length === 4) {
+            setBoardWords([cfg.words[0] || '', cfg.words[1] || '', cfg.words[2] || '', cfg.words[3] || '']);
+          }
+        }
+      } catch {}
+
       const { state } = await getVCNVState(gameId);
       const initial = new Set<number>();
       state.forEach((s) => s.is_revealed && initial.add(s.hang_ngang_index));
@@ -158,38 +173,10 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       {/* Reveal Board */}
       <Card className="bg-white/10 backdrop-blur-lg border-white/20">
         <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4 items-center">
-            {/* Left two rows */}
-            <div className="space-y-3">
-              {[0, 1].map((idx) => (
-                <div key={idx} className={`px-4 py-3 rounded-lg text-center font-semibold border ${revealed.has(idx) ? 'bg-green-500/20 border-green-400 text-green-200' : 'bg-white/5 border-white/20 text-blue-100'}`}>
-                  Hàng ngang {idx + 1} {revealed.has(idx) ? '— Đã mở' : '— Chưa mở'}
-                </div>
-              ))}
-            </div>
-
-            {/* Central tile */}
-            <div className="text-center">
-              <div className="mx-auto w-40 h-40 rounded-xl border-2 border-yellow-400 bg-yellow-500/10 flex items-center justify-center">
-                <div>
-                  <p className="text-yellow-300 font-bold">Chướng ngại vật</p>
-                  <p className="text-sm text-yellow-200">Đã mở: {revealed.size}/4 hàng</p>
-                </div>
-              </div>
-              {eliminatedPlayers.has(currentPlayerId) && (
-                <p className="mt-2 text-red-300 text-sm font-semibold">Bạn đã bị loại khỏi phần thi này</p>
-              )}
-            </div>
-
-            {/* Right two rows */}
-            <div className="space-y-3">
-              {[2, 3].map((idx) => (
-                <div key={idx} className={`px-4 py-3 rounded-lg text-center font-semibold border ${revealed.has(idx) ? 'bg-green-500/20 border-green-400 text-green-200' : 'bg-white/5 border-white/20 text-blue-100'}`}>
-                  Hàng ngang {idx + 1} {revealed.has(idx) ? '— Đã mở' : '— Chưa mở'}
-                </div>
-              ))}
-            </div>
-          </div>
+          <VCNVBoard cols={boardCols} words={boardWords} revealed={revealed} />
+          {eliminatedPlayers.has(currentPlayerId) && (
+            <p className="mt-3 text-center text-red-300 text-sm font-semibold">Bạn đã bị loại khỏi phần thi này</p>
+          )}
         </CardContent>
       </Card>
 
