@@ -512,48 +512,8 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
                   )}
                 </div>
               ) : currentAnswer ? (
-                <div
-                  className={`p-6 rounded-lg border-2 ${
-                    currentAnswer.is_correct
-                      ? 'bg-green-500/20 border-green-400'
-                      : 'bg-red-500/20 border-red-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    {currentAnswer.is_correct ? (
-                      <CheckCircle2 className="h-8 w-8 text-green-400" />
-                    ) : (
-                      <XCircle className="h-8 w-8 text-red-400" />
-                    )}
-                    <span
-                      className={`text-2xl font-bold ${
-                        currentAnswer.is_correct ? 'text-green-300' : 'text-red-300'
-                      }`}
-                    >
-                      {currentAnswer.is_correct ? 'Đúng!' : 'Sai!'}
-                    </span>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="p-3 bg-white/5 rounded">
-                      <p className="text-sm text-blue-200 mb-1">
-                        <strong>Câu trả lời của bạn:</strong>
-                      </p>
-                      <p className="text-lg font-medium text-white">{currentAnswer.answer_text}</p>
-                    </div>
-                    <div className="p-3 bg-white/5 rounded">
-                      <p className="text-sm text-blue-200 mb-1">
-                        <strong>Đáp án đúng:</strong>
-                      </p>
-                      <p className="text-lg font-medium text-white">{currentQuestion.correct_answer}</p>
-                    </div>
-                  </div>
-                  {currentAnswer.points_earned > 0 && (
-                    <div className="mt-4 p-4 bg-green-500/30 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-green-300">
-                        +{currentAnswer.points_earned} điểm
-                      </p>
-                    </div>
-                  )}
+                <div className="p-6 rounded-lg border-2 bg-white/10 border-white/20 text-center">
+                  <p className="text-blue-200">Đã ghi nhận câu trả lời. Đang chuyển sang câu tiếp theo...</p>
                 </div>
               ) : roundEnded ? (
                 <div className="p-4 bg-red-500/20 rounded-lg border border-red-400 text-center">
