@@ -21,10 +21,22 @@ function generateGameCode(): string {
 // Create a new game
 export async function createGame(): Promise<{ game: Game | null; error: Error | null }> {
   try {
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Bạn cần đăng nhập để tạo game');
+    }
+
     const code = generateGameCode();
     const { data, error } = await supabase
       .from('games')
-      .insert({ code, status: 'waiting', current_round: 'khoi_dong' })
+      .insert({ 
+        code, 
+        status: 'waiting', 
+        current_round: 'khoi_dong',
+        user_id: user.id 
+      })
       .select()
       .single();
 

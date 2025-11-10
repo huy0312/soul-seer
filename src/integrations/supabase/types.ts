@@ -78,6 +78,7 @@ export type Database = {
           code: string
           status: 'waiting' | 'playing' | 'finished'
           current_round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          user_id: string | null
           created_at: string
           updated_at: string
         }
@@ -86,6 +87,7 @@ export type Database = {
           code: string
           status?: 'waiting' | 'playing' | 'finished'
           current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -94,6 +96,7 @@ export type Database = {
           code?: string
           status?: 'waiting' | 'playing' | 'finished'
           current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }

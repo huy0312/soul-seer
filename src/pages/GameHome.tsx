@@ -8,10 +8,12 @@ import { QRCode } from '@/components/game/QRCode';
 import { GameCode } from '@/components/game/GameCode';
 import { createGame, joinGame } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
-import { Trophy, Users, Play } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Trophy, Users, Play, LogIn, User } from 'lucide-react';
 
 const GameHome = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [gameCode, setGameCode] = useState('');
@@ -173,42 +175,77 @@ const GameHome = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tên của bạn</label>
-                    <Input
-                      type="text"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      placeholder="Nhập tên của bạn"
-                      className="bg-white text-gray-800"
-                    />
-                  </div>
-                  {createdGameCode ? (
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <p className="text-lg font-semibold mb-4">Game đã được tạo!</p>
-                        <GameCode code={createdGameCode} />
-                      </div>
+                  {authLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+                      <p className="text-blue-100">Đang kiểm tra đăng nhập...</p>
+                    </div>
+                  ) : !user ? (
+                    <div className="space-y-6 text-center py-8">
                       <div className="flex justify-center">
-                        <QRCode value={`${window.location.origin}/game/join/${createdGameCode}`} />
+                        <div className="bg-yellow-500/20 rounded-full p-4">
+                          <LogIn className="h-12 w-12 text-yellow-400" />
+                        </div>
                       </div>
-                      <Button
-                        onClick={() => navigate(`/game/lobby/${createdGameCode}`)}
-                        className="w-full"
-                        size="lg"
-                      >
-                        Vào phòng chờ
-                      </Button>
+                      <div>
+                        <h3 className="text-xl font-semibold mb-2">Cần đăng nhập để tạo game</h3>
+                        <p className="text-blue-100 mb-6">
+                          Bạn cần đăng nhập hoặc tạo tài khoản để có thể tạo game mới
+                        </p>
+                        <Button
+                          onClick={() => navigate('/auth')}
+                          className="w-full"
+                          size="lg"
+                        >
+                          <LogIn className="h-5 w-5 mr-2" />
+                          Đăng nhập / Đăng ký
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <Button
-                      onClick={handleCreateGame}
-                      disabled={creating || !playerName.trim()}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {creating ? 'Đang tạo game...' : 'Tạo game mới'}
-                    </Button>
+                    <>
+                      <div className="flex items-center justify-center gap-2 text-sm text-blue-100 mb-4">
+                        <User className="h-4 w-4" />
+                        <span>Đã đăng nhập: {user.email}</span>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Tên của bạn</label>
+                        <Input
+                          type="text"
+                          value={playerName}
+                          onChange={(e) => setPlayerName(e.target.value)}
+                          placeholder="Nhập tên của bạn"
+                          className="bg-white text-gray-800"
+                        />
+                      </div>
+                      {createdGameCode ? (
+                        <div className="space-y-6">
+                          <div className="text-center">
+                            <p className="text-lg font-semibold mb-4">Game đã được tạo!</p>
+                            <GameCode code={createdGameCode} />
+                          </div>
+                          <div className="flex justify-center">
+                            <QRCode value={`${window.location.origin}/game/join/${createdGameCode}`} />
+                          </div>
+                          <Button
+                            onClick={() => navigate(`/game/lobby/${createdGameCode}`)}
+                            className="w-full"
+                            size="lg"
+                          >
+                            Vào phòng chờ
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={handleCreateGame}
+                          disabled={creating || !playerName.trim()}
+                          className="w-full"
+                          size="lg"
+                        >
+                          {creating ? 'Đang tạo game...' : 'Tạo game mới'}
+                        </Button>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
