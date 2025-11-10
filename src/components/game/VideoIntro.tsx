@@ -26,7 +26,8 @@ export const VideoIntro: React.FC<VideoIntroProps> = ({
     } else if (url.includes('youtu.be/')) {
       videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=0&modestbranding=1&playsinline=1&enablejsapi=1&loop=0&mute=0` : '';
+    // Hide all controls: controls=0, showinfo=0, modestbranding=1, rel=0, iv_load_policy=3, disablekb=1, fs=0
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=0&showinfo=0&modestbranding=1&playsinline=1&enablejsapi=1&loop=0&mute=0&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0` : '';
   };
 
   // Extract Vimeo video ID
