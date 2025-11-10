@@ -37,6 +37,7 @@ const GamePlay = () => {
   const [videoIntroCompleted, setVideoIntroCompleted] = useState<Set<RoundType>>(new Set());
   const [currentIntroVideo, setCurrentIntroVideo] = useState<string | null>(null);
   const videoIntroCheckedRef = useRef<Set<RoundType>>(new Set());
+  const prevRoundRef = useRef<RoundType | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -65,6 +66,7 @@ const GamePlay = () => {
         }
 
         setGame(gameData);
+        prevRoundRef.current = gameData.current_round as RoundType | null;
 
         // Get current player from localStorage
         const storedPlayerId = localStorage.getItem(`player_${code}`);
@@ -147,7 +149,7 @@ const GamePlay = () => {
           setGame(updatedGame);
           if (updatedGame.status === 'finished') {
             navigate(`/game/results/${code}`);
-          } else if (updatedGame.current_round && updatedGame.current_round !== gameData.current_round) {
+          } else if (updatedGame.current_round && updatedGame.current_round !== prevRoundRef.current) {
             // Round changed - check if we need to show video intro for new round
             let introVideos: Record<string, string> | null = null;
             
@@ -186,6 +188,7 @@ const GamePlay = () => {
               });
             }
             loadQuestionsForRound(updatedGame.id, updatedGame.current_round);
+            prevRoundRef.current = updatedGame.current_round as RoundType;
           }
         });
 

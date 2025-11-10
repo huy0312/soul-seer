@@ -112,6 +112,8 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
             if (!res.points_earned || res.points_earned === 0) {
               await awardPoints(currentPlayerId, bonus);
             }
+            // End round immediately when central is solved
+            onRoundComplete();
           }
         } else if (isCentral) {
           // Eliminate on wrong central guess
@@ -152,6 +154,44 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         <h2 className="text-3xl font-bold mb-2">Phần 2 - Vượt chướng ngại vật</h2>
         <p className="text-blue-200">Bấm chuông nhanh để giành quyền trả lời. Hàng ngang đúng sẽ mở gợi ý (+10 điểm). Đoán đúng chướng ngại vật: +80/60/40/20.</p>
       </div>
+
+      {/* Reveal Board */}
+      <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-3 gap-4 items-center">
+            {/* Left two rows */}
+            <div className="space-y-3">
+              {[0, 1].map((idx) => (
+                <div key={idx} className={`px-4 py-3 rounded-lg text-center font-semibold border ${revealed.has(idx) ? 'bg-green-500/20 border-green-400 text-green-200' : 'bg-white/5 border-white/20 text-blue-100'}`}>
+                  Hàng ngang {idx + 1} {revealed.has(idx) ? '— Đã mở' : '— Chưa mở'}
+                </div>
+              ))}
+            </div>
+
+            {/* Central tile */}
+            <div className="text-center">
+              <div className="mx-auto w-40 h-40 rounded-xl border-2 border-yellow-400 bg-yellow-500/10 flex items-center justify-center">
+                <div>
+                  <p className="text-yellow-300 font-bold">Chướng ngại vật</p>
+                  <p className="text-sm text-yellow-200">Đã mở: {revealed.size}/4 hàng</p>
+                </div>
+              </div>
+              {eliminatedPlayers.has(currentPlayerId) && (
+                <p className="mt-2 text-red-300 text-sm font-semibold">Bạn đã bị loại khỏi phần thi này</p>
+              )}
+            </div>
+
+            {/* Right two rows */}
+            <div className="space-y-3">
+              {[2, 3].map((idx) => (
+                <div key={idx} className={`px-4 py-3 rounded-lg text-center font-semibold border ${revealed.has(idx) ? 'bg-green-500/20 border-green-400 text-green-200' : 'bg-white/5 border-white/20 text-blue-100'}`}>
+                  Hàng ngang {idx + 1} {revealed.has(idx) ? '— Đã mở' : '— Chưa mở'}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Question Section */}
