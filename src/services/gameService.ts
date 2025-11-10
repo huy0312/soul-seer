@@ -162,6 +162,38 @@ export async function updateGameIntroVideo(
   }
 }
 
+// Upload video file to Supabase storage
+export async function uploadIntroVideo(
+  gameId: string,
+  file: File
+): Promise<{ url: string | null; error: Error | null }> {
+  try {
+    // Get file extension
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${gameId}-${Date.now()}.${fileExt}`;
+    const filePath = `intro-videos/${fileName}`;
+
+    // Upload file to storage
+    const { error: uploadError } = await supabase.storage
+      .from('intro-videos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data } = supabase.storage
+      .from('intro-videos')
+      .getPublicUrl(filePath);
+
+    return { url: data.publicUrl, error: null };
+  } catch (error) {
+    return { url: null, error: error as Error };
+  }
+}
+
 // Get game by ID
 export async function getGameById(id: string): Promise<{ game: Game | null; error: Error | null }> {
   try {
