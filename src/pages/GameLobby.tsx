@@ -6,6 +6,7 @@ import { QRCode } from '@/components/game/QRCode';
 import { GameCode } from '@/components/game/GameCode';
 import { PlayerList } from '@/components/game/PlayerList';
 import { ChatRoom } from '@/components/game/ChatRoom';
+import { Podium } from '@/components/game/Podium';
 import {
   getGameByCode,
   getPlayers,
@@ -208,6 +209,28 @@ const GameLobby = () => {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-2">Phòng chờ</h1>
             <p className="text-xl text-blue-100">Mã game: {code}</p>
+          </div>
+
+          {/* Podiums Section */}
+          <div className="mb-8">
+            <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-bold text-center mb-6">Bục trả lời câu hỏi</h2>
+                <div className="grid grid-cols-4 gap-4 h-64">
+                  {[1, 2, 3, 4].map((position) => {
+                    const player = playingPlayers[position - 1] || null;
+                    return (
+                      <Podium
+                        key={position}
+                        player={player}
+                        position={position}
+                        isHost={player?.is_host || false}
+                      />
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

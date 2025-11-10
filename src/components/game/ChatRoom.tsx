@@ -3,10 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, Send, Volume2 } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useVoiceChat } from '@/hooks/useVoiceChat';
-import { VoiceStatus } from '@/components/game/VoiceStatus';
 import type { Database } from '@/integrations/supabase/types';
 
 type Player = Database['public']['Tables']['players']['Row'];
@@ -31,37 +29,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
-  const otherPlayerIds = players.map((p) => p.id).filter((id) => id !== currentPlayerId);
-
-  // Use voice chat hook
-  const { isMicOn, isConnected, toggleMic, localStream, remoteStreams } = useVoiceChat({
-    gameId,
-    currentPlayerId,
-    otherPlayerIds,
-  });
-
-  // Broadcast mic status when it changes
-  useEffect(() => {
-    const channelName = `voice-status:${gameId}`;
-    const channel = supabase.channel(channelName);
-    channel
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'mic-status',
-            payload: {
-              playerId: currentPlayerId,
-              isMicOn,
-            },
-          });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isMicOn, gameId, currentPlayerId]);
 
   useEffect(() => {
     // Load initial messages
@@ -114,7 +81,39 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
   }, [gameId, players]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll if user is near the bottom
+    if (messagesEndRef.current) {
+      // Find the scroll container (Radix ScrollArea viewport)
+      const scrollContainer = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+        
+        // Only scroll if user is near bottom or it's a new message from current user
+        if (isNearBottom) {
+          // Use setTimeout to ensure DOM is updated
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 100);
+        }
+      } else {
+        // Fallback: try to find any scrollable parent
+        let parent = messagesEndRef.current.parentElement;
+        while (parent) {
+          if (parent.scrollHeight > parent.clientHeight) {
+            const { scrollTop, scrollHeight, clientHeight } = parent;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+            if (isNearBottom) {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 100);
+            }
+            break;
+          }
+          parent = parent.parentElement;
+        }
+      }
+    }
   }, [messages]);
 
   const loadMessages = async () => {
@@ -172,38 +171,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
 
 
   return (
-    <>
-      <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full flex flex-col">
-        <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Chat</span>
-          <div className="flex items-center gap-2">
-            {isConnected && (
-              <div className="flex items-center gap-1 text-green-400 text-xs">
-                <Volume2 className="h-3 w-3" />
-                <span>Đã kết nối</span>
-              </div>
-            )}
-            <Button
-              onClick={toggleMic}
-              variant={isMicOn ? 'default' : 'outline'}
-              size="sm"
-              className={isMicOn ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              {isMicOn ? (
-                <>
-                  <MicOff className="h-4 w-4 mr-2" />
-                  Tắt mic
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4 mr-2" />
-                  Bật mic
-                </>
-              )}
-            </Button>
-          </div>
-        </CardTitle>
+    <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full flex flex-col">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Chat</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
         <ScrollArea className="flex-1 px-4">
@@ -264,23 +234,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ gameId, currentPlayerId, pla
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          {isMicOn && (
-            <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span>Microphone đang bật - Mọi người có thể nghe bạn</span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
-    <VoiceStatus
-      gameId={gameId}
-      currentPlayerId={currentPlayerId}
-      players={players}
-      localStream={localStream}
-      remoteStreams={remoteStreams}
-    />
-    </>
   );
 };
 

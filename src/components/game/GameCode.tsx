@@ -1,5 +1,5 @@
 import { Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
@@ -13,6 +13,12 @@ interface GameCodeProps {
 export const GameCode: React.FC<GameCodeProps> = ({ code, onCodeChange, showInput = false }) => {
   const [copied, setCopied] = useState(false);
   const [inputCode, setInputCode] = useState('');
+
+  useEffect(() => {
+    if (code) {
+      setInputCode(code);
+    }
+  }, [code]);
 
   const handleCopy = async () => {
     try {
@@ -32,18 +38,6 @@ export const GameCode: React.FC<GameCodeProps> = ({ code, onCodeChange, showInpu
     }
   };
 
-  const handleJoin = () => {
-    if (inputCode.trim().length === 6 && onCodeChange) {
-      onCodeChange(inputCode.toUpperCase());
-    } else {
-      toast({
-        title: 'Mã game không hợp lệ',
-        description: 'Mã game phải có 6 ký tự',
-        variant: 'destructive',
-      });
-    }
-  };
-
   if (showInput) {
     return (
       <div className="flex flex-col gap-4 p-6 bg-white rounded-lg shadow-lg">
@@ -51,19 +45,20 @@ export const GameCode: React.FC<GameCodeProps> = ({ code, onCodeChange, showInpu
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Nhập mã game
           </label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-              placeholder="Nhập mã 6 ký tự"
-              maxLength={6}
-              className="text-center text-2xl font-bold tracking-widest uppercase"
-            />
-            <Button onClick={handleJoin} className="px-6">
-              Tham gia
-            </Button>
-          </div>
+          <Input
+            type="text"
+            value={inputCode}
+            onChange={(e) => {
+              const newCode = e.target.value.toUpperCase();
+              setInputCode(newCode);
+              if (onCodeChange) {
+                onCodeChange(newCode);
+              }
+            }}
+            placeholder="Nhập mã 6 ký tự"
+            maxLength={6}
+            className="text-center text-2xl font-bold tracking-widest uppercase"
+          />
         </div>
       </div>
     );
