@@ -6,8 +6,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Timer } from '@/components/game/Timer';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import { toast } from '@/hooks/use-toast';
+import { getAnswersForRound } from '@/services/gameService';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { CheckCircle2, XCircle, Trophy, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Trophy, AlertTriangle, Crown } from 'lucide-react';
 
 type Question = Database['public']['Tables']['questions']['Row'] & {
   options?: string[] | null;
@@ -19,6 +21,7 @@ interface Round1KhoiDongProps {
   questions: Question[];
   players: Player[];
   currentPlayerId: string;
+  gameId: string;
   onSubmitAnswer: (questionId: string, answer: string) => Promise<Answer | null>;
   onRoundComplete: () => void;
   timeLimit?: number; // Total time for the round in seconds (default 60)
@@ -28,17 +31,20 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   questions,
   players,
   currentPlayerId,
+  gameId,
   onSubmitAnswer,
   onRoundComplete,
   timeLimit = 60,
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [playerAnswers, setPlayerAnswers] = useState<Map<string, Answer>>(new Map());
+  const [allPlayersAnswers, setAllPlayersAnswers] = useState<Answer[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [roundTimeLeft, setRoundTimeLeft] = useState(timeLimit);
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [penaltyApplied, setPenaltyApplied] = useState(false);
   const lastVisibilityChangeRef = useRef<number>(0);
@@ -62,6 +68,12 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const totalScore = currentPlayer?.score || 0;
   const answeredCount = playerAnswers.size;
   const correctCount = Array.from(playerAnswers.values()).filter((a) => a.is_correct).length;
+  
+  // Find leader (player with highest score)
+  const playingPlayers = players.filter((p) => !p.is_host);
+  const sortedPlayers = [...playingPlayers].sort((a, b) => b.score - a.score);
+  const leader = sortedPlayers.length > 0 ? sortedPlayers[0] : null;
+  const isCurrentPlayerLeader = leader && leader.id === currentPlayerId;
 
   // Parse options from JSON if exists
   const questionOptions = currentQuestion?.options
@@ -191,33 +203,87 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
     return () => clearInterval(timer);
   }, [roundEnded, showResults]);
 
-  // Auto advance to next question after answering
+  // Auto advance to next question immediately after answering (no delay)
   useEffect(() => {
     if (currentAnswer && !roundEnded && !showResults && currentQuestion) {
-      // Auto advance after 2 seconds
-      const timer = setTimeout(() => {
-        if (currentQuestionIndex < questions.length - 1) {
-          const nextIndex = currentQuestionIndex + 1;
-          setCurrentQuestionIndex(nextIndex);
+      // Advance immediately after answering - no delay
+      if (currentQuestionIndex < questions.length - 1) {
+        // Use setTimeout with 0ms to ensure state update happens after currentAnswer is set
+        setTimeout(() => {
+          setCurrentQuestionIndex((prev) => prev + 1);
           setSelectedAnswer('');
-        }
-        // Don't auto-end round, wait for timer or host to move to next round
-      }, 2000);
-
-      return () => clearTimeout(timer);
+        }, 0);
+      }
     }
   }, [currentAnswer, currentQuestionIndex, questions.length, roundEnded, showResults, currentQuestion]);
 
-  // When round ends, show results
+  // Subscribe to answers changes and check if all players completed
   useEffect(() => {
-    if (roundEnded && !showResults) {
-      // Wait a bit then show results
+    if (roundEnded || showResults) return;
+
+    const loadAllAnswers = async () => {
+      const { answers, error } = await getAnswersForRound(gameId, 'khoi_dong');
+      if (error || !answers) return;
+      
+      setAllPlayersAnswers(answers);
+      
+      // Check if all players have completed all questions
+      const playingPlayers = players.filter((p) => !p.is_host);
+      const totalQuestions = questions.length;
+      
+      let allCompleted = true;
+      for (const player of playingPlayers) {
+        const playerAnswers = answers.filter((a) => a.player_id === player.id);
+        if (playerAnswers.length < totalQuestions) {
+          allCompleted = false;
+          break;
+        }
+      }
+      
+      setAllPlayersCompleted(allCompleted);
+    };
+
+    // Load answers initially
+    loadAllAnswers();
+
+    // Subscribe to answers changes
+    const questionIds = questions.map((q) => q.id);
+    const channelName = `answers:${gameId}:${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'answers',
+          filter: `question_id=in.(${questionIds.join(',')})`,
+        },
+        () => {
+          // Reload answers when any answer changes
+          loadAllAnswers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId, questions, players, roundEnded, showResults]);
+
+  // When all players completed, show results (regardless of time)
+  useEffect(() => {
+    if (allPlayersCompleted && !showResults && !roundEnded) {
+      // All players completed - end the round
+      setRoundEnded(true);
+      // Show results after a brief moment
       const timer = setTimeout(() => {
         setShowResults(true);
+        onRoundComplete();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [roundEnded, showResults]);
+  }, [allPlayersCompleted, showResults, roundEnded, onRoundComplete]);
 
   const handleSelectAnswer = (option: string) => {
     if (currentAnswer || submitting || roundEnded) return;
@@ -247,7 +313,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
     }
   };
 
-  // Auto submit when answer is selected
+  // Auto submit immediately when answer is selected
   useEffect(() => {
     if (selectedAnswer && !currentAnswer && !submitting && !roundEnded && currentQuestion) {
       // Check if already answered to prevent duplicate
@@ -255,10 +321,8 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         return;
       }
       
-      const timer = setTimeout(() => {
-        handleSubmit();
-      }, 500); // Auto submit after 500ms of selection
-      return () => clearTimeout(timer);
+      // Submit immediately without delay
+      handleSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAnswer, currentAnswer, submitting, roundEnded, currentQuestion]);
@@ -352,6 +416,43 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
             <AlertTriangle className="h-4 w-4 text-red-400" />
             <AlertDescription className="text-red-200 font-semibold">
               ⚠️ Bị trừ 15 giây vì rời khỏi màn hình!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show leader notification - Update in real-time */}
+        {leader && !showResults && (
+          <Alert className={`mt-4 max-w-md mx-auto animate-pulse ${
+            isCurrentPlayerLeader 
+              ? 'bg-yellow-500/30 border-yellow-400 shadow-lg shadow-yellow-400/50' 
+              : 'bg-blue-500/20 border-blue-400'
+          }`}>
+            <Crown className={`h-5 w-5 ${
+              isCurrentPlayerLeader ? 'text-yellow-400' : 'text-blue-400'
+            }`} />
+            <AlertDescription className={
+              isCurrentPlayerLeader ? 'text-yellow-200 font-semibold' : 'text-blue-200'
+            }>
+              {isCurrentPlayerLeader ? (
+                <span className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-400" />
+                  <span>👑 Bạn đang dẫn đầu với <strong className="text-yellow-300">{leader.score} điểm</strong>!</span>
+                </span>
+              ) : (
+                <span>
+                  <strong className="text-blue-300">{leader.name}</strong> đang dẫn đầu với <strong className="text-blue-300">{leader.score} điểm</strong>
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show waiting message if not all players completed yet */}
+        {!allPlayersCompleted && !showResults && (
+          <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
+            <AlertTriangle className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-200">
+              Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {questions.length * players.filter(p => !p.is_host).length} câu trả lời)
             </AlertDescription>
           </Alert>
         )}

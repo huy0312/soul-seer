@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { QRCode } from '@/components/game/QRCode';
 import { GameCode } from '@/components/game/GameCode';
 import { joinGame, getGameByCode } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
-import { Users } from 'lucide-react';
+import { Users, ArrowLeft, Gamepad2, User } from 'lucide-react';
 
 const GameJoin = () => {
   const { code } = useParams<{ code: string }>();

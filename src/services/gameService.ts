@@ -381,6 +381,39 @@ export async function getAnswer(
   }
 }
 
+// Get all answers for a game and round
+export async function getAnswersForRound(
+  gameId: string,
+  round: RoundType
+): Promise<{ answers: Answer[] | null; error: Error | null }> {
+  try {
+    // First get all question IDs for this round
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('round', round);
+
+    if (questionsError) throw questionsError;
+    if (!questions || questions.length === 0) {
+      return { answers: [], error: null };
+    }
+
+    const questionIds = questions.map((q) => q.id);
+
+    // Get all answers for these questions
+    const { data, error } = await supabase
+      .from('answers')
+      .select('*')
+      .in('question_id', questionIds);
+
+    if (error) throw error;
+    return { answers: data || [], error: null };
+  } catch (error) {
+    return { answers: null, error: error as Error };
+  }
+}
+
 // Move to next round
 export async function nextRound(gameId: string, round: RoundType): Promise<{ error: Error | null }> {
   try {
