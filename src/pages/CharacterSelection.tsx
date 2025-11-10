@@ -190,52 +190,62 @@ const CharacterSelection = () => {
                   <p className="text-blue-200">Đang tải danh sách nhân vật...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                   {CHARACTERS.map((character) => {
                     const isSelected = selectedCharacter === character.id;
                     const isTaken = takenAvatars.has(character.image);
                     return (
                       <button
                         key={character.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (!isTaken) {
                             setSelectedCharacter(character.id);
                           }
                         }}
                         disabled={isTaken}
-                        className={`relative p-4 rounded-lg border-2 transition-all duration-200 ${
+                        type="button"
+                        className={`relative p-4 md:p-6 rounded-lg border-2 transition-all duration-200 touch-manipulation min-h-[140px] md:min-h-[160px] ${
                           isTaken
-                            ? 'border-red-500/50 bg-red-500/10 opacity-50 cursor-not-allowed'
+                            ? 'border-red-500/50 bg-red-500/10 opacity-50 cursor-not-allowed pointer-events-none'
                             : isSelected
-                            ? 'border-yellow-400 bg-yellow-500/20 shadow-lg shadow-yellow-400/50 scale-105'
-                            : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                            ? 'border-yellow-400 bg-yellow-500/20 shadow-lg shadow-yellow-400/50 scale-105 active:scale-100'
+                            : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 active:bg-white/20 active:scale-95'
                         }`}
+                        style={{
+                          WebkitTapHighlightColor: 'transparent',
+                          touchAction: 'manipulation',
+                          WebkitTouchCallout: 'none',
+                          userSelect: 'none',
+                        }}
                       >
-                        <div className="aspect-square mb-3 bg-white/10 rounded-lg flex items-center justify-center overflow-hidden relative">
+                        <div className="aspect-square mb-3 bg-white/10 rounded-lg flex items-center justify-center overflow-hidden relative w-full">
                           <img
                             src={character.image}
                             alt={character.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none"
+                            draggable={false}
                             onError={(e) => {
                               // Fallback nếu ảnh không tồn tại
                               const target = e.target as HTMLImageElement;
-                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName)}&size=200&background=random`;
+                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName!)}&size=200&background=random`;
                             }}
                           />
                           {isTaken && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <XCircle className="h-8 w-8 text-red-400" />
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+                              <XCircle className="h-8 w-8 md:h-10 md:w-10 text-red-400" />
                             </div>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-center">{playerName}</p>
+                        <p className="text-sm md:text-base font-medium text-center break-words">{playerName}</p>
                         {isSelected && !isTaken && (
-                          <div className="absolute top-2 right-2">
-                            <CheckCircle2 className="h-6 w-6 text-yellow-400" />
+                          <div className="absolute top-2 right-2 md:top-3 md:right-3">
+                            <CheckCircle2 className="h-6 w-6 md:h-7 md:w-7 text-yellow-400" />
                           </div>
                         )}
                         {isTaken && (
-                          <p className="text-xs text-red-400 text-center mt-1">Đã được chọn</p>
+                          <p className="text-xs md:text-sm text-red-400 text-center mt-1">Đã được chọn</p>
                         )}
                       </button>
                     );
@@ -247,8 +257,13 @@ const CharacterSelection = () => {
                 <Button
                   onClick={handleJoinGame}
                   disabled={!selectedCharacter || joining}
-                  className="w-full"
+                  className="w-full min-h-[48px] text-base md:text-lg touch-manipulation"
                   size="lg"
+                  type="button"
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                  }}
                 >
                   {joining ? 'Đang tham gia...' : 'Xác nhận và tham gia'}
                 </Button>
