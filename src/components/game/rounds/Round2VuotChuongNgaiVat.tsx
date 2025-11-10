@@ -7,6 +7,8 @@ import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { getVCNVState, revealHangNgang, awardPoints } from '@/services/gameService';
+import { supabase } from '@/integrations/supabase/client';
 
 type Question = Database['public']['Tables']['questions']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
@@ -16,7 +18,8 @@ interface Round2VuotChuongNgaiVatProps {
   questions: Question[];
   players: Player[];
   currentPlayerId: string;
-  onSubmitAnswer: (questionId: string, answer: string) => Promise<void>;
+  gameId: string;
+  onSubmitAnswer: (questionId: string, answer: string) => Promise<Answer | null>;
   onNextQuestion: () => void;
   onRoundComplete: () => void;
 }
@@ -25,6 +28,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   questions,
   players,
   currentPlayerId,
+  gameId,
   onSubmitAnswer,
   onNextQuestion,
   onRoundComplete,
@@ -34,11 +38,39 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const [playerAnswers, setPlayerAnswers] = useState<Map<string, Answer>>(new Map());
   const [submitting, setSubmitting] = useState(false);
   const [answer, setAnswer] = useState('');
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [eliminatedPlayers, setEliminatedPlayers] = useState<Set<string>>(new Set());
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const isWordPuzzle = currentQuestion?.question_type === 'hang_ngang';
+  const isCentral = currentQuestion?.question_type === 'chuong_ngai_vat';
+
+  // Load and subscribe VCNV reveal state
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { state } = await getVCNVState(gameId);
+      const initial = new Set<number>();
+      state.forEach((s) => s.is_revealed && initial.add(s.hang_ngang_index));
+      setRevealed(initial);
+    })();
+
+    channel = supabase
+      .channel(`vcnv:${gameId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vcnv_state', filter: `game_id=eq.${gameId}` }, (payload) => {
+        const row: any = payload.new;
+        if (row?.is_revealed) {
+          setRevealed((prev) => new Set(prev).add(row.hang_ngang_index));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [gameId]);
 
   const handleBuzzerPress = (playerId: string, playerName: string) => {
     if (!firstBuzzerPress) {
@@ -54,9 +86,38 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       return;
     }
 
+    // If player eliminated (wrong central guess earlier), block
+    if (eliminatedPlayers.has(currentPlayerId)) return;
+
     setSubmitting(true);
     try {
-      await onSubmitAnswer(currentQuestion.id, answer);
+      const res = await onSubmitAnswer(currentQuestion.id, answer);
+      if (res) {
+        setPlayerAnswers((prev) => new Map(prev.set(currentQuestion.id, res)));
+        const correct = res.is_correct;
+        if (correct) {
+          if (isWordPuzzle) {
+            // +10 and reveal corresponding hang ngang index (0-3 expected)
+            const idx = Math.min(currentQuestionIndex, 3);
+            await revealHangNgang(gameId, idx);
+            // If backend didn't award, ensure +10
+            if (!res.points_earned || res.points_earned === 0) {
+              await awardPoints(currentPlayerId, 10);
+            }
+          } else if (isCentral) {
+            // Calculate bonus based on number of revealed rows
+            const opened = Math.min(revealed.size, 3);
+            const bonusMap = [80, 60, 40, 20];
+            const bonus = bonusMap[opened];
+            if (!res.points_earned || res.points_earned === 0) {
+              await awardPoints(currentPlayerId, bonus);
+            }
+          }
+        } else if (isCentral) {
+          // Eliminate on wrong central guess
+          setEliminatedPlayers((prev) => new Set(prev).add(currentPlayerId));
+        }
+      }
     } catch (error) {
       console.error('Error submitting answer:', error);
     } finally {
@@ -89,7 +150,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-3xl font-bold mb-2">Phần 2 - Vượt chướng ngại vật</h2>
-        <p className="text-blue-200">Bấm chuông nhanh để giành quyền trả lời</p>
+        <p className="text-blue-200">Bấm chuông nhanh để giành quyền trả lời. Hàng ngang đúng sẽ mở gợi ý (+10 điểm). Đoán đúng chướng ngại vật: +80/60/40/20.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -123,7 +184,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
               )}
 
               {/* Buzzer Section */}
-              {!currentAnswer && !isWordPuzzle && (
+              {!currentAnswer && !isWordPuzzle && !eliminatedPlayers.has(currentPlayerId) && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     {playingPlayers.map((player) => (
@@ -231,4 +292,6 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     </div>
   );
 };
+
+export default Round2VuotChuongNgaiVat as any;
 

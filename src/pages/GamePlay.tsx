@@ -381,6 +381,7 @@ const GamePlay = () => {
               questions={questions}
               players={playingPlayers}
               currentPlayerId={currentPlayerId}
+              gameId={game.id}
               onSubmitAnswer={(questionId, answer) => handleSubmitAnswer(questionId, answer)}
               onNextQuestion={handleNextQuestion}
               onRoundComplete={handleRoundComplete}

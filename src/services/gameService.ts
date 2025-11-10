@@ -650,3 +650,58 @@ export function subscribeToPlayers(
   };
 }
 
+export async function getVCNVState(gameId: string): Promise<{ state: { hang_ngang_index: number; is_revealed: boolean }[]; error: Error | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('vcnv_state')
+      .select('hang_ngang_index, is_revealed')
+      .eq('game_id', gameId)
+      .order('hang_ngang_index', { ascending: true });
+
+    if (error) throw error;
+    return { state: data || [], error: null };
+  } catch (error) {
+    return { state: [], error: error as Error };
+  }
+}
+
+export async function revealHangNgang(gameId: string, index: number): Promise<{ error: Error | null }> {
+  try {
+    // Upsert reveal state for the specific hang ngang index
+    const { error } = await supabase
+      .from('vcnv_state')
+      .upsert({ game_id: gameId, hang_ngang_index: index, is_revealed: true, revealed_at: new Date().toISOString() }, { onConflict: 'game_id,hang_ngang_index' });
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+}
+
+export async function awardPoints(playerId: string, points: number): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.rpc('increment_player_score', { p_player_id: playerId, p_delta: points });
+    if (error) {
+      // Fallback: manual update if RPC not available
+      const { error: updError } = await supabase
+        .from('players')
+        .update({ score: (supabase as any).rpc ? undefined : undefined })
+        .eq('id', playerId);
+      if (updError) throw updError;
+    }
+    return { error: null };
+  } catch (error) {
+    // As a last resort, read current score and set
+    try {
+      const { data } = await supabase.from('players').select('score').eq('id', playerId).single();
+      const current = data?.score ?? 0;
+      const { error: setError } = await supabase.from('players').update({ score: current + points }).eq('id', playerId);
+      if (setError) throw setError;
+      return { error: null };
+    } catch (e) {
+      return { error: e as Error };
+    }
+  }
+}
+
