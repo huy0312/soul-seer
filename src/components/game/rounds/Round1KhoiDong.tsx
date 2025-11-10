@@ -219,11 +219,15 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
 
   // Subscribe to answers changes and check if all players completed
   useEffect(() => {
-    if (roundEnded || showResults) return;
+    // Don't check if already showing results
+    if (showResults) return;
 
     const loadAllAnswers = async () => {
       const { answers, error } = await getAnswersForRound(gameId, 'khoi_dong');
-      if (error || !answers) return;
+      if (error || !answers) {
+        console.error('Error loading answers:', error);
+        return;
+      }
       
       setAllPlayersAnswers(answers);
       
@@ -231,56 +235,78 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       const playingPlayers = players.filter((p) => !p.is_host);
       const totalQuestions = questions.length;
       
+      console.log('Checking completion status:', {
+        totalPlayers: playingPlayers.length,
+        totalQuestions,
+        totalAnswers: answers.length,
+      });
+      
       let allCompleted = true;
       for (const player of playingPlayers) {
         const playerAnswers = answers.filter((a) => a.player_id === player.id);
+        console.log(`Player ${player.name}: ${playerAnswers.length}/${totalQuestions} answers`);
         if (playerAnswers.length < totalQuestions) {
           allCompleted = false;
           break;
         }
       }
       
+      console.log('All players completed?', allCompleted);
       setAllPlayersCompleted(allCompleted);
     };
 
     // Load answers initially
     loadAllAnswers();
 
-    // Subscribe to answers changes
-    const questionIds = questions.map((q) => q.id);
-    const channelName = `answers:${gameId}:${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'answers',
-          filter: `question_id=in.(${questionIds.join(',')})`,
-        },
-        () => {
-          // Reload answers when any answer changes
-          loadAllAnswers();
-        }
-      )
-      .subscribe();
+    // Subscribe to answers changes - but only if not showing results
+    if (!showResults) {
+      const questionIds = questions.map((q) => q.id);
+      const channelName = `answers:${gameId}:${Date.now()}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'answers',
+            filter: `question_id=in.(${questionIds.join(',')})`,
+          },
+          () => {
+            // Reload answers when any answer changes
+            console.log('Answer changed, reloading...');
+            if (!showResults) {
+              loadAllAnswers();
+            }
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [gameId, questions, players, roundEnded, showResults]);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [gameId, questions, players, showResults]);
 
   // When all players completed, show results (regardless of time)
   useEffect(() => {
     if (allPlayersCompleted && !showResults && !roundEnded) {
-      // All players completed - end the round
+      console.log('✅ All players completed! Ending round and showing results...');
+      // All players completed - end the round immediately
       setRoundEnded(true);
-      // Show results after a brief moment
+      setShowResults(true);
+      
+      // Notify that round is complete
+      toast({
+        title: 'Hoàn thành!',
+        description: 'Tất cả thí sinh đã hoàn thành phần thi. Đang tính điểm...',
+        variant: 'default',
+      });
+      
+      // Call onRoundComplete after a brief moment to allow UI to update
       const timer = setTimeout(() => {
-        setShowResults(true);
         onRoundComplete();
-      }, 1000);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [allPlayersCompleted, showResults, roundEnded, onRoundComplete]);
@@ -448,11 +474,21 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         )}
 
         {/* Show waiting message if not all players completed yet */}
-        {!allPlayersCompleted && !showResults && (
+        {!allPlayersCompleted && !showResults && !roundEnded && (
           <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
             <AlertTriangle className="h-4 w-4 text-blue-400" />
             <AlertDescription className="text-blue-200">
               Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {questions.length * players.filter(p => !p.is_host).length} câu trả lời)
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Show completion message when all players completed */}
+        {allPlayersCompleted && !showResults && !roundEnded && (
+          <Alert className="mt-4 bg-green-500/20 border-green-400 max-w-md mx-auto animate-pulse">
+            <CheckCircle2 className="h-4 w-4 text-green-400" />
+            <AlertDescription className="text-green-200 font-semibold">
+              ✅ Tất cả thí sinh đã hoàn thành! Đang tính điểm...
             </AlertDescription>
           </Alert>
         )}
