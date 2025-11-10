@@ -155,7 +155,7 @@ const GameHost = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Người chơi ({playingPlayers.length}/4)
+                    Thí sinh ({playingPlayers.length}/4)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

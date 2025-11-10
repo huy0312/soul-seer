@@ -63,7 +63,7 @@ export const Podium: React.FC<PodiumProps> = ({ player, position, isHost = false
             <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-lg border-2 border-dashed border-white/20 flex items-center justify-center">
               <User className="h-8 w-8 text-white/30" />
             </div>
-            <p className="text-sm text-white/50">Chờ người chơi</p>
+            <p className="text-sm text-white/50">Chờ thí sinh</p>
           </div>
         )}
       </div>

@@ -145,7 +145,7 @@ const GameLobby = () => {
     if (!game || playingPlayers.length < 2) {
       toast({
         title: 'Lỗi',
-        description: 'Cần ít nhất 2 người chơi để bắt đầu game',
+        description: 'Cần ít nhất 2 thí sinh để bắt đầu game',
         variant: 'destructive',
       });
       return;
@@ -158,7 +158,7 @@ const GameLobby = () => {
 
       toast({
         title: 'Game đã bắt đầu!',
-        description: 'Tất cả người chơi sẽ được chuyển vào màn hình giới thiệu...',
+        description: 'Tất cả thí sinh sẽ được chuyển vào màn hình giới thiệu...',
       });
 
       // Navigate to intro screen first
@@ -319,7 +319,7 @@ const GameLobby = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 text-yellow-200">
                       <Users className="h-5 w-5" />
-                      <p>Cần ít nhất 2 người chơi để bắt đầu game</p>
+                      <p>Cần ít nhất 2 thí sinh để bắt đầu game</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -329,7 +329,7 @@ const GameLobby = () => {
                 <Card className="bg-red-500/20 backdrop-blur-lg border-red-300/20">
                   <CardContent className="p-6">
                     <p className="text-red-200">
-                      Game đã đầy (tối đa 4 người chơi)
+                      Game đã đầy (tối đa 4 thí sinh)
                     </p>
                   </CardContent>
                 </Card>

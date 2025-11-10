@@ -26,7 +26,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4 
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        Người chơi ({players.length}/{maxPlayers})
+        Thí sinh ({players.length}/{maxPlayers})
       </h3>
       <div className="space-y-2">
         {sortedPlayers.map((player, index) => (
@@ -60,7 +60,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4 
         {players.length < maxPlayers && (
           <div className="p-4 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 text-center">
             <p className="text-gray-500 text-sm">
-              Đang chờ người chơi... ({maxPlayers - players.length} chỗ trống)
+              Đang chờ thí sinh... ({maxPlayers - players.length} chỗ trống)
             </p>
           </div>
         )}

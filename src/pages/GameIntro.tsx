@@ -42,7 +42,7 @@ const GameIntro = () => {
                   <Users className="h-6 w-6 text-blue-300 mt-1" />
                   <div>
                     <h3 className="font-semibold text-lg mb-1">4 Thí sinh</h3>
-                    <p className="text-blue-200 text-sm">Tối đa 4 người chơi cùng thi đấu</p>
+                    <p className="text-blue-200 text-sm">Tối đa 4 thí sinh cùng thi đấu</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-4 bg-white/5 rounded-lg">

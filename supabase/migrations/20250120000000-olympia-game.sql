@@ -17,7 +17,7 @@ CREATE TABLE public.games (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Tạo bảng players để lưu thông tin người chơi
+-- Tạo bảng players để lưu thông tin thí sinh
 CREATE TABLE public.players (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
@@ -42,7 +42,7 @@ CREATE TABLE public.questions (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Tạo bảng answers để lưu câu trả lời của người chơi
+-- Tạo bảng answers để lưu câu trả lời của thí sinh
 CREATE TABLE public.answers (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   player_id UUID NOT NULL REFERENCES public.players(id) ON DELETE CASCADE,
