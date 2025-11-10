@@ -241,16 +241,12 @@ const GamePlay = () => {
 
   const playingPlayers = players.filter((p) => !p.is_host);
 
-  // Show video intro if needed
+  // Show video intro if needed - full screen, no buttons
   if (showVideoIntro && game?.intro_video_url && game.current_round === 'khoi_dong') {
     return (
       <VideoIntro
         videoUrl={game.intro_video_url}
         onComplete={() => {
-          setShowVideoIntro(false);
-          setVideoIntroCompleted(true);
-        }}
-        onSkip={() => {
           setShowVideoIntro(false);
           setVideoIntroCompleted(true);
         }}
