@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions, updateGameIntroVideo, uploadIntroVideo } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -36,9 +36,24 @@ const GameQuestions = () => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [introVideoUrl, setIntroVideoUrl] = useState<string>('');
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [introVideos, setIntroVideos] = useState<Record<RoundType, string>>({
+    khoi_dong: '',
+    vuot_chuong_ngai_vat: '',
+    tang_toc: '',
+    ve_dich: '',
+  });
+  const [videoFiles, setVideoFiles] = useState<Record<RoundType, File | null>>({
+    khoi_dong: null,
+    vuot_chuong_ngai_vat: null,
+    tang_toc: null,
+    ve_dich: null,
+  });
+  const [uploadingVideo, setUploadingVideo] = useState<Record<RoundType, boolean>>({
+    khoi_dong: false,
+    vuot_chuong_ngai_vat: false,
+    tang_toc: false,
+    ve_dich: false,
+  });
 
   const [questions, setQuestions] = useState<Record<RoundType, Question[]>>({
     khoi_dong: [],
@@ -60,7 +75,16 @@ const GameQuestions = () => {
           throw error || new Error('Game not found');
         }
         setGameId(game.id);
-        setIntroVideoUrl(game.intro_video_url || '');
+        // Load intro videos for all rounds
+        if (game.intro_videos && typeof game.intro_videos === 'object') {
+          const videos = game.intro_videos as Record<string, string>;
+          setIntroVideos({
+            khoi_dong: videos.khoi_dong || '',
+            vuot_chuong_ngai_vat: videos.vuot_chuong_ngai_vat || '',
+            tang_toc: videos.tang_toc || '',
+            ve_dich: videos.ve_dich || '',
+          });
+        }
         setLoading(false);
       } catch (error) {
         toast({
@@ -236,36 +260,50 @@ const GameQuestions = () => {
       const { error } = await createQuestions(gameId, allQuestions);
       if (error) throw error;
 
-      // Upload video file if provided
-      if (videoFile) {
-        setUploadingVideo(true);
-        try {
-          const { url, error: uploadError } = await uploadIntroVideo(gameId, videoFile);
-          if (uploadError) {
-            console.error('Error uploading video:', uploadError);
-            toast({
-              title: 'Cảnh báo',
-              description: 'Không thể upload video. Vui lòng thử lại hoặc sử dụng URL.',
-              variant: 'destructive',
-            });
-          } else if (url) {
-            const { error: videoError } = await updateGameIntroVideo(gameId, url);
-            if (videoError) {
-              console.error('Error updating video URL:', videoError);
+      // Process intro videos for all rounds
+      const finalIntroVideos: Record<RoundType, string | null> = {
+        khoi_dong: null,
+        vuot_chuong_ngai_vat: null,
+        tang_toc: null,
+        ve_dich: null,
+      };
+
+      // Upload video files and collect URLs
+      for (const round of Object.keys(roundLabels) as RoundType[]) {
+        const videoFile = videoFiles[round];
+        const videoPath = introVideos[round]?.trim() || '';
+
+        if (videoFile) {
+          // Upload file
+          setUploadingVideo((prev) => ({ ...prev, [round]: true }));
+          try {
+            const { url, error: uploadError } = await uploadIntroVideo(gameId, videoFile);
+            if (uploadError) {
+              console.error(`Error uploading video for ${round}:`, uploadError);
+              toast({
+                title: 'Cảnh báo',
+                description: `Không thể upload video cho ${roundLabels[round]}. ${uploadError.message}`,
+                variant: 'destructive',
+              });
+            } else if (url) {
+              finalIntroVideos[round] = url;
             }
+          } catch (error) {
+            console.error(`Error uploading video for ${round}:`, error);
+          } finally {
+            setUploadingVideo((prev) => ({ ...prev, [round]: false }));
           }
-        } catch (error) {
-          console.error('Error uploading video:', error);
-        } finally {
-          setUploadingVideo(false);
+        } else if (videoPath) {
+          // Use path/URL directly
+          finalIntroVideos[round] = videoPath;
         }
-      } else if (introVideoUrl.trim()) {
-        // Update intro video URL if provided (for URL input)
-        const { error: videoError } = await updateGameIntroVideo(gameId, introVideoUrl.trim());
-        if (videoError) {
-          console.error('Error updating video URL:', videoError);
-          // Don't fail the whole save if video update fails
-        }
+      }
+
+      // Update intro videos in database
+      const { error: videoError } = await updateGameIntroVideos(gameId, finalIntroVideos);
+      if (videoError) {
+        console.error('Error updating intro videos:', videoError);
+        // Don't fail the whole save if video update fails
       }
 
       toast({
@@ -485,78 +523,98 @@ const GameQuestions = () => {
             </CardContent>
           </Card>
 
-          {/* Video Intro Upload */}
+          {/* Video Intro for all rounds */}
           <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-8">
             <CardHeader>
-              <CardTitle className="text-2xl">Video Intro cho phần Khởi động</CardTitle>
+              <CardTitle className="text-2xl">Video Intro cho các phần thi</CardTitle>
               <CardDescription className="text-blue-100">
-                Upload video của bạn để phát trước khi bắt đầu phần thi Khởi động
+                Chọn video intro để phát trước khi bắt đầu mỗi phần thi
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="intro-video-file" className="text-white mb-2">
-                    Upload Video File
-                  </Label>
-                  <Input
-                    id="intro-video-file"
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        // Check file size (max 100MB)
-                        if (file.size > 100 * 1024 * 1024) {
-                          toast({
-                            title: 'Lỗi',
-                            description: 'File video quá lớn. Vui lòng chọn file nhỏ hơn 100MB.',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        setVideoFile(file);
-                        setIntroVideoUrl(''); // Clear URL input if file is selected
-                      }
-                    }}
-                    className="bg-white text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
-                  />
-                  {videoFile && (
-                    <div className="mt-2 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
-                      <p className="text-blue-200 text-sm">
-                        <strong>File đã chọn:</strong> {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </p>
+              <div className="space-y-6">
+                {(Object.keys(roundLabels) as RoundType[]).map((round) => (
+                  <div key={round} className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <h3 className="text-lg font-semibold text-white mb-4">{roundLabels[round]}</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor={`intro-video-path-${round}`} className="text-white mb-2">
+                          Đường dẫn video từ thư mục public (Khuyến nghị)
+                        </Label>
+                        <Input
+                          id={`intro-video-path-${round}`}
+                          type="text"
+                          value={introVideos[round]}
+                          onChange={(e) => {
+                            setIntroVideos((prev) => ({
+                              ...prev,
+                              [round]: e.target.value,
+                            }));
+                            setVideoFiles((prev) => ({
+                              ...prev,
+                              [round]: null, // Clear file if path is entered
+                            }));
+                          }}
+                          placeholder={`/videos/${round}-intro.mp4`}
+                          className="bg-white text-gray-800"
+                        />
+                        <p className="text-blue-200 text-xs mt-1">
+                          Ví dụ: <code className="bg-blue-900/50 px-1 rounded">/videos/{round}-intro.mp4</code>
+                        </p>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-white/10"></span>
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-blue-900 px-2 text-blue-200 text-xs">Hoặc</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor={`intro-video-file-${round}`} className="text-white mb-2">
+                          Upload Video File
+                        </Label>
+                        <Input
+                          id={`intro-video-file-${round}`}
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 100 * 1024 * 1024) {
+                                toast({
+                                  title: 'Lỗi',
+                                  description: 'File video quá lớn. Vui lòng chọn file nhỏ hơn 100MB.',
+                                  variant: 'destructive',
+                                });
+                                return;
+                              }
+                              setVideoFiles((prev) => ({
+                                ...prev,
+                                [round]: file,
+                              }));
+                              setIntroVideos((prev) => ({
+                                ...prev,
+                                [round]: '', // Clear path if file is selected
+                              }));
+                            }
+                          }}
+                          className="bg-white text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                        />
+                        {videoFiles[round] && (
+                          <div className="mt-2 p-2 bg-blue-500/20 rounded border border-blue-400/30">
+                            <p className="text-blue-200 text-xs">
+                              <strong>File:</strong> {videoFiles[round]?.name} ({(videoFiles[round]!.size / 1024 / 1024).toFixed(2)} MB)
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <p className="text-blue-200 text-sm mt-2">
-                    Hỗ trợ: MP4, WebM, MOV (tối đa 100MB)
-                  </p>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/20"></span>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-blue-900 px-2 text-blue-200">Hoặc</span>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="intro-video-url" className="text-white mb-2">
-                    Hoặc nhập URL Video (tùy chọn)
-                  </Label>
-                  <Input
-                    id="intro-video-url"
-                    type="url"
-                    value={introVideoUrl}
-                    onChange={(e) => {
-                      setIntroVideoUrl(e.target.value);
-                      setVideoFile(null); // Clear file if URL is entered
-                    }}
-                    placeholder="https://example.com/video.mp4"
-                    className="bg-white text-gray-800"
-                  />
-                  <p className="text-blue-200 text-sm mt-2">
-                    Direct video link (MP4, WebM, etc.)
+                ))}
+                <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
+                  <p className="text-blue-200 text-sm">
+                    <strong>Lưu ý:</strong> Đặt file video vào thư mục <code className="bg-blue-900/50 px-1 rounded">public</code> trong source code, sau đó nhập đường dẫn bắt đầu bằng <code className="bg-blue-900/50 px-1 rounded">/</code>
                   </p>
                 </div>
               </div>
@@ -574,12 +632,12 @@ const GameQuestions = () => {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || uploadingVideo}
+              disabled={saving || Object.values(uploadingVideo).some((v) => v)}
               size="lg"
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Save className="h-5 w-5 mr-2" />
-              {uploadingVideo ? 'Đang upload video...' : saving ? 'Đang lưu...' : 'Lưu tất cả câu hỏi'}
+              {Object.values(uploadingVideo).some((v) => v) ? 'Đang upload video...' : saving ? 'Đang lưu...' : 'Lưu tất cả câu hỏi'}
             </Button>
           </div>
         </div>

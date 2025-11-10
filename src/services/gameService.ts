@@ -144,15 +144,15 @@ export async function getGameByCode(code: string): Promise<{ game: Game | null; 
   }
 }
 
-// Update game intro video URL
-export async function updateGameIntroVideo(
+// Update game intro videos for all rounds
+export async function updateGameIntroVideos(
   gameId: string,
-  videoUrl: string
+  introVideos: Record<RoundType, string | null>
 ): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase
       .from('games')
-      .update({ intro_video_url: videoUrl || null })
+      .update({ intro_videos: introVideos })
       .eq('id', gameId);
 
     if (error) throw error;
@@ -168,29 +168,54 @@ export async function uploadIntroVideo(
   file: File
 ): Promise<{ url: string | null; error: Error | null }> {
   try {
+    // Check if user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { url: null, error: new Error('Bạn cần đăng nhập để upload video') };
+    }
+
     // Get file extension
     const fileExt = file.name.split('.').pop();
     const fileName = `${gameId}-${Date.now()}.${fileExt}`;
-    const filePath = `intro-videos/${fileName}`;
+    const filePath = fileName; // Store directly in bucket root, not in subfolder
 
     // Upload file to storage
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('intro-videos')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error details:', uploadError);
+      // Provide more specific error messages
+      if (uploadError.message.includes('Bucket not found')) {
+        return { url: null, error: new Error('Storage bucket "intro-videos" chưa được tạo. Vui lòng tạo bucket trong Supabase Dashboard.') };
+      }
+      if (uploadError.message.includes('new row violates row-level security')) {
+        return { url: null, error: new Error('Không có quyền upload. Vui lòng kiểm tra RLS policies.') };
+      }
+      return { url: null, error: new Error(uploadError.message || 'Lỗi khi upload video') };
+    }
+
+    if (!uploadData) {
+      return { url: null, error: new Error('Upload thành công nhưng không nhận được dữ liệu') };
+    }
 
     // Get public URL
-    const { data } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from('intro-videos')
       .getPublicUrl(filePath);
 
-    return { url: data.publicUrl, error: null };
+    if (!urlData?.publicUrl) {
+      return { url: null, error: new Error('Không thể lấy public URL của video') };
+    }
+
+    return { url: urlData.publicUrl, error: null };
   } catch (error) {
-    return { url: null, error: error as Error };
+    console.error('Upload video exception:', error);
+    return { url: null, error: error instanceof Error ? error : new Error('Lỗi không xác định khi upload video') };
   }
 }
 

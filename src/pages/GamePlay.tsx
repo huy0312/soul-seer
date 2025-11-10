@@ -34,7 +34,8 @@ const GamePlay = () => {
   const [loading, setLoading] = useState(true);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [showVideoIntro, setShowVideoIntro] = useState(false);
-  const [videoIntroCompleted, setVideoIntroCompleted] = useState(false);
+  const [videoIntroCompleted, setVideoIntroCompleted] = useState<Set<RoundType>>(new Set());
+  const [currentIntroVideo, setCurrentIntroVideo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -93,9 +94,13 @@ const GamePlay = () => {
           await loadQuestionsForRound(gameData.id, gameData.current_round);
         }
 
-        // Check if we need to show video intro for round 1
-        if (gameData.current_round === 'khoi_dong' && gameData.intro_video_url && !videoIntroCompleted) {
-          setShowVideoIntro(true);
+        // Check if we need to show video intro for current round
+        if (gameData.current_round && gameData.intro_videos) {
+          const introVideos = gameData.intro_videos as Record<string, string> | null;
+          if (introVideos && introVideos[gameData.current_round] && !videoIntroCompleted.has(gameData.current_round)) {
+            setCurrentIntroVideo(introVideos[gameData.current_round]);
+            setShowVideoIntro(true);
+          }
         }
 
         // Subscribe to game changes
@@ -104,6 +109,12 @@ const GamePlay = () => {
           if (updatedGame.status === 'finished') {
             navigate(`/game/results/${code}`);
           } else if (updatedGame.current_round && updatedGame.current_round !== gameData.current_round) {
+            // Round changed - check if we need to show video intro for new round
+            const introVideos = updatedGame.intro_videos as Record<string, string> | null;
+            if (introVideos && introVideos[updatedGame.current_round] && !videoIntroCompleted.has(updatedGame.current_round)) {
+              setCurrentIntroVideo(introVideos[updatedGame.current_round]);
+              setShowVideoIntro(true);
+            }
             loadQuestionsForRound(updatedGame.id, updatedGame.current_round);
           }
         });
@@ -242,15 +253,33 @@ const GamePlay = () => {
   const playingPlayers = players.filter((p) => !p.is_host);
 
   // Show video intro if needed - full screen, no buttons
-  if (showVideoIntro && game?.intro_video_url && game.current_round === 'khoi_dong') {
+  const getRoundTitle = (round: RoundType | null): string => {
+    switch (round) {
+      case 'khoi_dong':
+        return 'Phần 1 - Khởi động';
+      case 'vuot_chuong_ngai_vat':
+        return 'Phần 2 - Vượt chướng ngại vật';
+      case 'tang_toc':
+        return 'Phần 3 - Tăng tốc';
+      case 've_dich':
+        return 'Phần 4 - Về đích';
+      default:
+        return 'Video Intro';
+    }
+  };
+
+  if (showVideoIntro && currentIntroVideo && game?.current_round) {
     return (
       <VideoIntro
-        videoUrl={game.intro_video_url}
+        videoUrl={currentIntroVideo}
         onComplete={() => {
           setShowVideoIntro(false);
-          setVideoIntroCompleted(true);
+          if (game.current_round) {
+            setVideoIntroCompleted((prev) => new Set(prev).add(game.current_round!));
+          }
+          setCurrentIntroVideo(null);
         }}
-        title="Phần 1 - Khởi động"
+        title={getRoundTitle(game.current_round)}
       />
     );
   }

@@ -79,7 +79,7 @@ export type Database = {
           status: 'waiting' | 'playing' | 'finished'
           current_round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
           user_id: string | null
-          intro_video_url: string | null
+          intro_videos: Json | null
           created_at: string
           updated_at: string
         }
@@ -89,7 +89,7 @@ export type Database = {
           status?: 'waiting' | 'playing' | 'finished'
           current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
           user_id?: string | null
-          intro_video_url?: string | null
+          intro_videos?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -99,7 +99,7 @@ export type Database = {
           status?: 'waiting' | 'playing' | 'finished'
           current_round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich' | null
           user_id?: string | null
-          intro_video_url?: string | null
+          intro_videos?: Json | null
           created_at?: string
           updated_at?: string
         }
