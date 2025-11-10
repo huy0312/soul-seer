@@ -1,0 +1,295 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Round1KhoiDong } from '@/components/game/rounds/Round1KhoiDong';
+import { Round2VuotChuongNgaiVat } from '@/components/game/rounds/Round2VuotChuongNgaiVat';
+import { Round3TangToc } from '@/components/game/rounds/Round3TangToc';
+import { Round4VeDich } from '@/components/game/rounds/Round4VeDich';
+import {
+  getGameByCode,
+  getPlayers,
+  getQuestions,
+  getAnswer,
+  submitAnswer,
+  nextRound,
+  finishGame,
+  subscribeToGame,
+  subscribeToPlayers,
+} from '@/services/gameService';
+import { toast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+import type { RoundType } from '@/services/gameService';
+
+type Game = Database['public']['Tables']['games']['Row'];
+type Player = Database['public']['Tables']['players']['Row'];
+type Question = Database['public']['Tables']['questions']['Row'];
+type Answer = Database['public']['Tables']['answers']['Row'];
+
+const GamePlay = () => {
+  const { code } = useParams<{ code: string }>();
+  const navigate = useNavigate();
+  const [game, setGame] = useState<Game | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!code) {
+      navigate('/');
+      return;
+    }
+
+    let unsubscribeGame: (() => void) | null = null;
+    let unsubscribePlayers: (() => void) | null = null;
+
+    const loadGame = async () => {
+      try {
+        const { game: gameData, error: gameError } = await getGameByCode(code);
+        if (gameError || !gameData) {
+          throw gameError || new Error('Game not found');
+        }
+
+        if (gameData.status === 'waiting') {
+          navigate(`/game/lobby/${code}`);
+          return;
+        }
+
+        if (gameData.status === 'finished') {
+          navigate(`/game/results/${code}`);
+          return;
+        }
+
+        setGame(gameData);
+
+        // Get current player from localStorage
+        const storedPlayerId = localStorage.getItem(`player_${code}`);
+        const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
+
+        if (storedPlayerId) {
+          if (isHost) {
+            navigate(`/game/host/${code}`);
+            return;
+          }
+          setCurrentPlayerId(storedPlayerId);
+        } else {
+          navigate(`/game/lobby/${code}`);
+          return;
+        }
+
+        const refreshPlayers = async () => {
+          const { players: playersData, error: playersError } = await getPlayers(gameData.id);
+          if (!playersError && playersData) {
+            setPlayers(playersData);
+          }
+        };
+
+        await refreshPlayers();
+
+        // Load questions for current round
+        if (gameData.current_round) {
+          await loadQuestionsForRound(gameData.id, gameData.current_round);
+        }
+
+        // Subscribe to game changes
+        unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
+          setGame(updatedGame);
+          if (updatedGame.status === 'finished') {
+            navigate(`/game/results/${code}`);
+          } else if (updatedGame.current_round && updatedGame.current_round !== gameData.current_round) {
+            loadQuestionsForRound(updatedGame.id, updatedGame.current_round);
+          }
+        });
+
+        // Subscribe to players changes
+        unsubscribePlayers = subscribeToPlayers(gameData.id, (updatedPlayers) => {
+          setPlayers(updatedPlayers);
+        });
+
+        setLoading(false);
+      } catch (error) {
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error ? error.message : 'Không thể tải game',
+          variant: 'destructive',
+        });
+        navigate('/');
+      }
+    };
+
+    const loadQuestionsForRound = async (gameId: string, round: RoundType) => {
+      const { questions: questionsData, error: questionsError } = await getQuestions(gameId, round);
+      if (!questionsError && questionsData) {
+        setQuestions(questionsData);
+      }
+    };
+
+    loadGame();
+
+    return () => {
+      if (unsubscribeGame) unsubscribeGame();
+      if (unsubscribePlayers) unsubscribePlayers();
+    };
+  }, [code, navigate]);
+
+  const handleSubmitAnswer = async (questionId: string, answer: string, responseTime?: number, useStar?: boolean) => {
+    if (!currentPlayerId) return;
+
+    try {
+      const { answer: answerData, error } = await submitAnswer(currentPlayerId, questionId, answer, responseTime, useStar);
+      if (error) throw error;
+
+      if (answerData) {
+        // Handle special scoring for different rounds
+        if (game?.current_round === 'tang_toc' && responseTime) {
+          // Adjust points based on response time for Tăng tốc
+          // This would be handled in the backend, but we can show feedback here
+        }
+
+        if (game?.current_round === 've_dich' && useStar) {
+          // Handle star bonus/penalty
+          // This would be handled in the backend
+        }
+
+        toast({
+          title: answerData.is_correct ? 'Đúng!' : 'Sai!',
+          description: answerData.is_correct
+            ? `Bạn đã nhận được ${answerData.points_earned} điểm`
+            : 'Hãy cố gắng ở câu tiếp theo',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể gửi câu trả lời',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleNextQuestion = () => {
+    // This can be used to trigger any side effects when moving to next question
+  };
+
+  const handleRoundComplete = async () => {
+    if (!game || !game.current_round) return;
+
+    const roundOrder: RoundType[] = ['khoi_dong', 'vuot_chuong_ngai_vat', 'tang_toc', 've_dich'];
+    const currentIndex = roundOrder.indexOf(game.current_round);
+
+    if (currentIndex < roundOrder.length - 1) {
+      // Move to next round
+      try {
+        const { error } = await nextRound(game.id, game.current_round);
+        if (error) throw error;
+
+        toast({
+          title: 'Chuyển phần thi',
+          description: `Chuyển sang ${roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' ? 'Vượt chướng ngại vật' : roundOrder[currentIndex + 1] === 'tang_toc' ? 'Tăng tốc' : 'Về đích'}`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error ? error.message : 'Không thể chuyển sang vòng tiếp theo',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      // Finish game
+      try {
+        const { error } = await finishGame(game.id);
+        if (error) throw error;
+
+        navigate(`/game/results/${code}`);
+      } catch (error) {
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error ? error.message : 'Không thể kết thúc game',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!game || !currentPlayerId || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <p>Đang tải game...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const playingPlayers = players.filter((p) => !p.is_host);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          {game.current_round === 'khoi_dong' && (
+            <Round1KhoiDong
+              questions={questions}
+              players={playingPlayers}
+              currentPlayerId={currentPlayerId}
+              onSubmitAnswer={(questionId, answer) => handleSubmitAnswer(questionId, answer)}
+              onNextQuestion={handleNextQuestion}
+              onRoundComplete={handleRoundComplete}
+            />
+          )}
+
+          {game.current_round === 'vuot_chuong_ngai_vat' && (
+            <Round2VuotChuongNgaiVat
+              questions={questions}
+              players={playingPlayers}
+              currentPlayerId={currentPlayerId}
+              onSubmitAnswer={(questionId, answer) => handleSubmitAnswer(questionId, answer)}
+              onNextQuestion={handleNextQuestion}
+              onRoundComplete={handleRoundComplete}
+            />
+          )}
+
+          {game.current_round === 'tang_toc' && (
+            <Round3TangToc
+              questions={questions}
+              players={playingPlayers}
+              currentPlayerId={currentPlayerId}
+              onSubmitAnswer={(questionId, answer, responseTime) =>
+                handleSubmitAnswer(questionId, answer, responseTime)
+              }
+              onNextQuestion={handleNextQuestion}
+              onRoundComplete={handleRoundComplete}
+              timeLimit={30}
+            />
+          )}
+
+          {game.current_round === 've_dich' && (
+            <Round4VeDich
+              questions={questions}
+              players={playingPlayers}
+              currentPlayerId={currentPlayerId}
+              onSubmitAnswer={(questionId, answer, useStar) =>
+                handleSubmitAnswer(questionId, answer, undefined, useStar)
+              }
+              onNextQuestion={handleNextQuestion}
+              onRoundComplete={handleRoundComplete}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GamePlay;
+

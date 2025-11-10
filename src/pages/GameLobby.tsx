@@ -91,12 +91,7 @@ const GameLobby = () => {
           console.log('Game status changed:', updatedGame.status);
           setGame(updatedGame);
           if (updatedGame.status === 'playing') {
-            const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
-            if (isHost) {
-              navigate(`/game/host/${code}`);
-            } else {
-              navigate(`/game/room/${code}`);
-            }
+            navigate(`/game/intro/${code}`);
           }
         });
 
@@ -120,12 +115,7 @@ const GameLobby = () => {
         gameStatusInterval = setInterval(async () => {
           const { game: currentGame } = await getGameByCode(code);
           if (currentGame && currentGame.status === 'playing' && gameData.status === 'waiting') {
-            const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
-            if (isHost) {
-              navigate(`/game/host/${code}`);
-            } else {
-              navigate(`/game/room/${code}`);
-            }
+            navigate(`/game/intro/${code}`);
           }
         }, 1000);
 
@@ -168,11 +158,11 @@ const GameLobby = () => {
 
       toast({
         title: 'Game đã bắt đầu!',
-        description: 'Tất cả người chơi sẽ được chuyển vào phòng game...',
+        description: 'Tất cả người chơi sẽ được chuyển vào màn hình giới thiệu...',
       });
 
-      // Host goes to host dashboard, players go to game room
-      navigate(`/game/host/${code}`);
+      // Navigate to intro screen first
+      navigate(`/game/intro/${code}`);
     } catch (error) {
       toast({
         title: 'Lỗi',

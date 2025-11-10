@@ -225,20 +225,47 @@ export async function createQuestions(
 export async function submitAnswer(
   playerId: string,
   questionId: string,
-  answerText: string
+  answerText: string,
+  responseTime?: number,
+  useStar?: boolean
 ): Promise<{ answer: Answer | null; error: Error | null }> {
   try {
     // Get question to check correct answer
     const { data: question, error: questionError } = await supabase
       .from('questions')
-      .select('correct_answer, points')
+      .select('correct_answer, points, goi_diem')
       .eq('id', questionId)
       .single();
 
     if (questionError || !question) throw new Error('Question not found');
 
     const isCorrect = answerText.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
-    const pointsEarned = isCorrect ? question.points : 0;
+    
+    // Calculate points based on round and special conditions
+    let pointsEarned = 0;
+    const basePoints = question.goi_diem || question.points;
+    
+    if (isCorrect) {
+      if (useStar) {
+        // Double points if using star and correct
+        pointsEarned = basePoints * 2;
+      } else {
+        pointsEarned = basePoints;
+      }
+      
+      // Adjust points based on response time for Tăng tốc (faster = more points)
+      if (responseTime !== undefined && responseTime > 0) {
+        // First responder gets full points, others get reduced
+        // This logic can be enhanced based on actual response order
+        const timeBonus = Math.max(0, 1 - responseTime / 30); // Bonus for speed
+        pointsEarned = Math.floor(pointsEarned * (1 + timeBonus * 0.5)); // Up to 50% bonus
+      }
+    } else {
+      // For Về đích, wrong answer subtracts points
+      if (question.goi_diem) {
+        pointsEarned = useStar ? -basePoints * 2 : -basePoints;
+      }
+    }
 
     // Get existing answer to calculate score difference
     const { data: existingAnswer } = await supabase
@@ -260,6 +287,7 @@ export async function submitAnswer(
           answer_text: answerText,
           is_correct: isCorrect,
           points_earned: pointsEarned,
+          response_time: responseTime || null,
         })
         .eq('id', existingAnswer.id)
         .select()
@@ -277,6 +305,7 @@ export async function submitAnswer(
           answer_text: answerText,
           is_correct: isCorrect,
           points_earned: pointsEarned,
+          response_time: responseTime || null,
         })
         .select()
         .single();

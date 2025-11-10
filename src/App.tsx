@@ -12,6 +12,8 @@ import GameRoom from "./pages/GameRoom";
 import GameHost from "./pages/GameHost";
 import GameResults from "./pages/GameResults";
 import GameJoin from "./pages/GameJoin";
+import GameIntro from "./pages/GameIntro";
+import GamePlay from "./pages/GamePlay";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/game/results/:code" element={<GameResults />} />
             <Route path="/game/join/:code" element={<GameJoin />} />
             <Route path="/game/join" element={<GameJoin />} />
+            <Route path="/game/intro/:code" element={<GameIntro />} />
+            <Route path="/game/play/:code" element={<GamePlay />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
