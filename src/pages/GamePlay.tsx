@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Round1KhoiDong } from '@/components/game/rounds/Round1KhoiDong';
+import { VideoIntro } from '@/components/game/VideoIntro';
 import { Round2VuotChuongNgaiVat } from '@/components/game/rounds/Round2VuotChuongNgaiVat';
 import { Round3TangToc } from '@/components/game/rounds/Round3TangToc';
 import { Round4VeDich } from '@/components/game/rounds/Round4VeDich';
@@ -32,6 +33,8 @@ const GamePlay = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const [showVideoIntro, setShowVideoIntro] = useState(false);
+  const [videoIntroCompleted, setVideoIntroCompleted] = useState(false);
 
   useEffect(() => {
     if (!code) {
@@ -88,6 +91,11 @@ const GamePlay = () => {
         // Load questions for current round
         if (gameData.current_round) {
           await loadQuestionsForRound(gameData.id, gameData.current_round);
+        }
+
+        // Check if we need to show video intro for round 1
+        if (gameData.current_round === 'khoi_dong' && gameData.intro_video_url && !videoIntroCompleted) {
+          setShowVideoIntro(true);
         }
 
         // Subscribe to game changes
@@ -232,6 +240,24 @@ const GamePlay = () => {
   }
 
   const playingPlayers = players.filter((p) => !p.is_host);
+
+  // Show video intro if needed
+  if (showVideoIntro && game?.intro_video_url && game.current_round === 'khoi_dong') {
+    return (
+      <VideoIntro
+        videoUrl={game.intro_video_url}
+        onComplete={() => {
+          setShowVideoIntro(false);
+          setVideoIntroCompleted(true);
+        }}
+        onSkip={() => {
+          setShowVideoIntro(false);
+          setVideoIntroCompleted(true);
+        }}
+        title="Phần 1 - Khởi động"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">

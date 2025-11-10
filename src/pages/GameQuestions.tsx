@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideo } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -36,6 +36,7 @@ const GameQuestions = () => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [introVideoUrl, setIntroVideoUrl] = useState<string>('');
 
   const [questions, setQuestions] = useState<Record<RoundType, Question[]>>({
     khoi_dong: [],
@@ -57,6 +58,7 @@ const GameQuestions = () => {
           throw error || new Error('Game not found');
         }
         setGameId(game.id);
+        setIntroVideoUrl(game.intro_video_url || '');
         setLoading(false);
       } catch (error) {
         toast({
@@ -231,6 +233,15 @@ const GameQuestions = () => {
 
       const { error } = await createQuestions(gameId, allQuestions);
       if (error) throw error;
+
+      // Update intro video URL if provided
+      if (introVideoUrl.trim()) {
+        const { error: videoError } = await updateGameIntroVideo(gameId, introVideoUrl.trim());
+        if (videoError) {
+          console.error('Error updating video URL:', videoError);
+          // Don't fail the whole save if video update fails
+        }
+      }
 
       toast({
         title: 'Thành công!',
@@ -446,6 +457,36 @@ const GameQuestions = () => {
                   </TabsContent>
                 ))}
               </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Video Intro URL */}
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-8">
+            <CardHeader>
+              <CardTitle className="text-2xl">Video Intro cho phần Khởi động</CardTitle>
+              <CardDescription className="text-blue-100">
+                Nhập URL video (YouTube, Vimeo, hoặc direct link) để phát trước khi bắt đầu phần thi Khởi động
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="intro-video-url" className="text-white mb-2">
+                    URL Video Intro
+                  </Label>
+                  <Input
+                    id="intro-video-url"
+                    type="url"
+                    value={introVideoUrl}
+                    onChange={(e) => setIntroVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=... hoặc https://vimeo.com/... hoặc direct link"
+                    className="bg-white text-gray-800"
+                  />
+                  <p className="text-blue-200 text-sm mt-2">
+                    Hỗ trợ: YouTube, Vimeo, hoặc direct video link (MP4, WebM, etc.)
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

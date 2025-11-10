@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Star } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Star, Trophy } from 'lucide-react';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -100,32 +100,31 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-purple-900 py-20">
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-md mx-auto">
           {/* Back to home */}
-          <Link to="/" className="inline-flex items-center text-purple-300 hover:text-purple-200 mb-8 transition-colors">
+          <Link to="/" className="inline-flex items-center text-blue-300 hover:text-blue-200 mb-8 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay về trang chủ
           </Link>
 
           {/* Logo */}
           <div className="text-center mb-8">
-            <img 
-              src="/lovable-uploads/Logo.png" 
-              alt="Soul Seer Logo" 
-              className="w-16 h-16 mx-auto mb-4 rounded-full"
-            />
-            <h1 className="text-3xl font-bold text-white font-serif">
-              <span className="bg-gradient-to-r from-purple-300 to-amber-300 bg-clip-text text-transparent">
-                Soul Seer
+            <div className="flex items-center justify-center mb-4">
+              <Trophy className="h-16 w-16 text-yellow-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-white">
+              <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
+                Đường lên đỉnh Olympia
               </span>
             </h1>
+            <p className="text-blue-200 mt-2">Cuộc thi kiến thức dành cho học sinh</p>
           </div>
 
-          <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur-sm">
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-white text-center font-serif">
+              <CardTitle className="text-2xl font-bold text-white text-center">
                 {isLogin ? 'Đăng Nhập' : 'Đăng Ký'}
               </CardTitle>
             </CardHeader>
@@ -133,7 +132,7 @@ const Auth = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {!isLogin && (
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-slate-300">
+                    <Label htmlFor="fullName" className="text-white">
                       Họ và tên *
                     </Label>
                     <Input
@@ -141,7 +140,7 @@ const Auth = () => {
                       type="text"
                       value={formData.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-white text-gray-800"
                       placeholder="Nhập họ và tên của bạn"
                       required={!isLogin}
                     />
@@ -149,7 +148,7 @@ const Auth = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-300">
+                  <Label htmlFor="email" className="text-white">
                     Email *
                   </Label>
                   <Input
@@ -157,14 +156,14 @@ const Auth = () => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                    className="bg-white text-gray-800"
                     placeholder="your@email.com"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300">
+                  <Label htmlFor="password" className="text-white">
                     Mật khẩu *
                   </Label>
                   <div className="relative">
@@ -173,14 +172,14 @@ const Auth = () => {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 pr-10"
+                      className="bg-white text-gray-800 pr-10"
                       placeholder="Nhập mật khẩu"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -190,7 +189,7 @@ const Auth = () => {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-semibold py-3"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold py-3"
                 >
                   {loading ? (
                     <div className="flex items-center">
@@ -209,7 +208,7 @@ const Auth = () => {
               <div className="mt-6 text-center">
                 <button
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-purple-300 hover:text-purple-200 transition-colors"
+                  className="text-blue-300 hover:text-blue-200 transition-colors"
                 >
                   {isLogin ? (
                     <>

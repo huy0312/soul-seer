@@ -144,6 +144,24 @@ export async function getGameByCode(code: string): Promise<{ game: Game | null; 
   }
 }
 
+// Update game intro video URL
+export async function updateGameIntroVideo(
+  gameId: string,
+  videoUrl: string
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('games')
+      .update({ intro_video_url: videoUrl || null })
+      .eq('id', gameId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+}
+
 // Get game by ID
 export async function getGameById(id: string): Promise<{ game: Game | null; error: Error | null }> {
   try {
