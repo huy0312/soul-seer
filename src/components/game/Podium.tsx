@@ -12,14 +12,8 @@ interface PodiumProps {
 
 export const Podium: React.FC<PodiumProps> = ({ player, position, isHost = false }) => {
   const getPodiumHeight = () => {
-    // Podium heights: 1st place tallest, 4th place shortest
-    const heights = {
-      1: 'h-40',
-      2: 'h-32',
-      3: 'h-28',
-      4: 'h-24',
-    };
-    return heights[position as keyof typeof heights] || 'h-24';
+    // All podiums have the same height
+    return 'h-32';
   };
 
   const getPodiumColor = () => {
