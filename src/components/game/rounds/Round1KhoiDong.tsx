@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Timer } from '@/components/game/Timer';
 import { Scoreboard } from '@/components/game/Scoreboard';
+import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
-import { CheckCircle2, XCircle, Trophy } from 'lucide-react';
+import { CheckCircle2, XCircle, Trophy, AlertTriangle } from 'lucide-react';
 
 type Question = Database['public']['Tables']['questions']['Row'] & {
   options?: string[] | null;
@@ -37,7 +39,10 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const [roundTimeLeft, setRoundTimeLeft] = useState(timeLimit);
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [penaltyApplied, setPenaltyApplied] = useState(false);
+  const lastVisibilityChangeRef = useRef<number>(0);
+  const isVisibleRef = useRef<boolean>(true);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -52,6 +57,99 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         ? JSON.parse(currentQuestion.options)
         : currentQuestion.options)
     : null;
+
+  // Detect tab/window visibility changes and apply penalty
+  useEffect(() => {
+    if (roundEnded || showResults) return;
+
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      const now = Date.now();
+
+      // If tab becomes hidden (user switched away)
+      if (!isVisible && isVisibleRef.current) {
+        isVisibleRef.current = false;
+        lastVisibilityChangeRef.current = now;
+      }
+      // If tab becomes visible again (user came back)
+      else if (isVisible && !isVisibleRef.current) {
+        isVisibleRef.current = true;
+        const timeAway = now - lastVisibilityChangeRef.current;
+
+        // Only apply penalty if user was away for more than 1 second (to avoid false positives)
+        if (timeAway > 1000) {
+          setRoundTimeLeft((prev) => {
+            const newTime = Math.max(0, prev - 15); // Subtract 15 seconds
+            setTabSwitchCount((count) => count + 1);
+            setPenaltyApplied(true);
+            
+            toast({
+              title: 'Cảnh báo!',
+              description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
+              variant: 'destructive',
+            });
+
+            // Reset penalty flag after showing
+            setTimeout(() => setPenaltyApplied(false), 3000);
+
+            if (newTime <= 0) {
+              setRoundEnded(true);
+              return 0;
+            }
+            return newTime;
+          });
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (!document.hidden && isVisibleRef.current) {
+        isVisibleRef.current = false;
+        lastVisibilityChangeRef.current = Date.now();
+      }
+    };
+
+    const handleFocus = () => {
+      if (!document.hidden && !isVisibleRef.current) {
+        const now = Date.now();
+        const timeAway = now - lastVisibilityChangeRef.current;
+
+        if (timeAway > 1000) {
+          setRoundTimeLeft((prev) => {
+            const newTime = Math.max(0, prev - 15);
+            setTabSwitchCount((count) => count + 1);
+            setPenaltyApplied(true);
+            
+            toast({
+              title: 'Cảnh báo!',
+              description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
+              variant: 'destructive',
+            });
+
+            setTimeout(() => setPenaltyApplied(false), 3000);
+
+            if (newTime <= 0) {
+              setRoundEnded(true);
+              return 0;
+            }
+            return newTime;
+          });
+        }
+        isVisibleRef.current = true;
+      }
+    };
+
+    // Listen to visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [roundEnded, showResults]);
 
   // Timer for the entire round
   useEffect(() => {
@@ -189,6 +287,36 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       <div className="text-center mb-6">
         <h2 className="text-3xl font-bold mb-2">Phần 1 - Khởi động</h2>
         <p className="text-blue-200">12 câu hỏi trắc nghiệm - Thời gian: {timeLimit} giây</p>
+        
+        {/* Initial warning about tab switching penalty */}
+        {tabSwitchCount === 0 && !roundEnded && !showResults && (
+          <Alert className="mt-4 bg-yellow-500/20 border-yellow-400 max-w-md mx-auto">
+            <AlertTriangle className="h-4 w-4 text-yellow-400" />
+            <AlertDescription className="text-yellow-200 text-sm">
+              <strong>Lưu ý:</strong> Rời khỏi màn hình sẽ bị trừ 15 giây mỗi lần
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show penalty count if user has switched tabs */}
+        {tabSwitchCount > 0 && (
+          <Alert className="mt-4 bg-red-500/20 border-red-400 max-w-md mx-auto">
+            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <AlertDescription className="text-red-200">
+              Đã rời khỏi màn hình {tabSwitchCount} lần. Mỗi lần bị trừ 15 giây.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show immediate penalty notification */}
+        {penaltyApplied && (
+          <Alert className="mt-2 bg-red-500/30 border-red-400 max-w-md mx-auto animate-pulse">
+            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <AlertDescription className="text-red-200 font-semibold">
+              ⚠️ Bị trừ 15 giây vì rời khỏi màn hình!
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -214,14 +342,27 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-6 bg-white/5 rounded-lg">
-                <p className="text-xl font-medium text-white">{currentQuestion.question_text}</p>
+              {/* Question Display - Transparent and Clear */}
+              <div className="p-6 bg-white/10 rounded-lg border-2 border-white/20">
+                <div className="mb-2">
+                  <Badge variant="outline" className="bg-blue-500/20 text-blue-200 border-blue-300 mb-3">
+                    Câu hỏi {currentQuestionIndex + 1} / {questions.length}
+                  </Badge>
+                </div>
+                <p className="text-2xl font-semibold text-white leading-relaxed">
+                  {currentQuestion.question_text}
+                </p>
               </div>
 
               {!currentAnswer && !roundEnded ? (
                 <div className="space-y-3">
+                  <div className="mb-4 p-3 bg-blue-500/10 rounded-lg border border-blue-400/30">
+                    <p className="text-sm text-blue-200 text-center">
+                      <strong>Chọn một trong 4 đáp án bên dưới:</strong>
+                    </p>
+                  </div>
                   {questionOptions && questionOptions.length === 4 ? (
-                    // Multiple choice with 4 options
+                    // Multiple choice with 4 options - Clear and transparent
                     questionOptions.map((option: string, index: number) => {
                       const optionLabel = String.fromCharCode(65 + index); // A, B, C, D
                       const isSelected = selectedAnswer === option;
@@ -230,24 +371,27 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
                           key={index}
                           onClick={() => handleSelectAnswer(option)}
                           disabled={submitting || roundEnded}
-                          className={`w-full h-auto py-4 px-6 text-left justify-start ${
+                          className={`w-full h-auto py-5 px-6 text-left justify-start transition-all duration-200 ${
                             isSelected
-                              ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400'
-                              : 'bg-white/10 hover:bg-white/20 border-2 border-transparent'
+                              ? 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400 shadow-lg scale-[1.02]'
+                              : 'bg-white/10 hover:bg-white/20 border-2 border-white/20 hover:border-white/40'
                           }`}
                           variant="outline"
                         >
                           <div className="flex items-center gap-4 w-full">
                             <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
                                 isSelected
-                                  ? 'bg-blue-500 text-white'
+                                  ? 'bg-blue-500 text-white ring-2 ring-blue-300'
                                   : 'bg-white/20 text-white'
                               }`}
                             >
                               {optionLabel}
                             </div>
-                            <span className="text-lg flex-1">{option}</span>
+                            <span className="text-lg font-medium flex-1 text-white">{option}</span>
+                            {isSelected && (
+                              <CheckCircle2 className="h-6 w-6 text-blue-300" />
+                            )}
                           </div>
                         </Button>
                       );
@@ -263,36 +407,46 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
                 </div>
               ) : currentAnswer ? (
                 <div
-                  className={`p-4 rounded-lg border-2 ${
+                  className={`p-6 rounded-lg border-2 ${
                     currentAnswer.is_correct
                       ? 'bg-green-500/20 border-green-400'
                       : 'bg-red-500/20 border-red-400'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-4">
                     {currentAnswer.is_correct ? (
-                      <CheckCircle2 className="h-6 w-6 text-green-400" />
+                      <CheckCircle2 className="h-8 w-8 text-green-400" />
                     ) : (
-                      <XCircle className="h-6 w-6 text-red-400" />
+                      <XCircle className="h-8 w-8 text-red-400" />
                     )}
                     <span
-                      className={`font-semibold ${
+                      className={`text-2xl font-bold ${
                         currentAnswer.is_correct ? 'text-green-300' : 'text-red-300'
                       }`}
                     >
                       {currentAnswer.is_correct ? 'Đúng!' : 'Sai!'}
                     </span>
                   </div>
-                  <p className="text-sm text-blue-200 mb-1">
-                    <strong>Câu trả lời của bạn:</strong> {currentAnswer.answer_text}
-                  </p>
-                  <p className="text-sm text-blue-200">
-                    <strong>Đáp án đúng:</strong> {currentQuestion.correct_answer}
-                  </p>
+                  <div className="space-y-2 mb-4">
+                    <div className="p-3 bg-white/5 rounded">
+                      <p className="text-sm text-blue-200 mb-1">
+                        <strong>Câu trả lời của bạn:</strong>
+                      </p>
+                      <p className="text-lg font-medium text-white">{currentAnswer.answer_text}</p>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded">
+                      <p className="text-sm text-blue-200 mb-1">
+                        <strong>Đáp án đúng:</strong>
+                      </p>
+                      <p className="text-lg font-medium text-white">{currentQuestion.correct_answer}</p>
+                    </div>
+                  </div>
                   {currentAnswer.points_earned > 0 && (
-                    <p className="text-lg font-bold text-green-300 mt-2">
-                      +{currentAnswer.points_earned} điểm
-                    </p>
+                    <div className="mt-4 p-4 bg-green-500/30 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-green-300">
+                        +{currentAnswer.points_earned} điểm
+                      </p>
+                    </div>
                   )}
                 </div>
               ) : roundEnded ? (

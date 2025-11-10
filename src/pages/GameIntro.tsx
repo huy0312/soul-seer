@@ -1,16 +1,90 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Trophy, Play, Users, Clock, Target, Zap } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getGameByCode, getPlayers, subscribeToGame } from '@/services/gameService';
+import { toast } from '@/hooks/use-toast';
+import { Trophy, Play, Users, Clock, Target, Zap, Crown, AlertCircle } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type Game = Database['public']['Tables']['games']['Row'];
+type Player = Database['public']['Tables']['players']['Row'];
 
 const GameIntro = () => {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const [showRules, setShowRules] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [game, setGame] = useState<Game | null>(null);
+
+  useEffect(() => {
+    if (!code) {
+      navigate('/');
+      return;
+    }
+
+    const checkHostStatus = async () => {
+      try {
+        // Check from localStorage first
+        const storedIsHost = localStorage.getItem(`is_host_${code}`) === 'true';
+        
+        // Also verify from database
+        const { game: gameData, error: gameError } = await getGameByCode(code);
+        if (gameError || !gameData) {
+          throw gameError || new Error('Game not found');
+        }
+
+        setGame(gameData);
+
+        // If game is already playing, redirect to play page
+        if (gameData.status === 'playing') {
+          navigate(`/game/play/${code}`);
+          return;
+        }
+
+        // Get players to verify host status
+        const { players, error: playersError } = await getPlayers(gameData.id);
+        if (!playersError && players) {
+          const storedPlayerId = localStorage.getItem(`player_${code}`);
+          const currentPlayer = players.find((p) => p.id === storedPlayerId);
+          if (currentPlayer?.is_host) {
+            setIsHost(true);
+          } else {
+            setIsHost(false);
+          }
+        } else {
+          setIsHost(storedIsHost);
+        }
+
+        // Subscribe to game changes - if game starts, redirect all players
+        const unsubscribe = subscribeToGame(gameData.id, (updatedGame) => {
+          if (updatedGame.status === 'playing') {
+            navigate(`/game/play/${code}`);
+          }
+        });
+
+        setLoading(false);
+
+        return () => {
+          unsubscribe();
+        };
+      } catch (error) {
+        toast({
+          title: 'Lỗi',
+          description: error instanceof Error ? error.message : 'Không thể tải thông tin game',
+          variant: 'destructive',
+        });
+        navigate('/');
+      }
+    };
+
+    checkHostStatus();
+  }, [code, navigate]);
 
   const handleStart = () => {
-    if (code) {
+    if (code && isHost) {
       navigate(`/game/play/${code}`);
     }
   };
@@ -133,16 +207,48 @@ const GameIntro = () => {
             </Card>
           )}
 
-          {/* Start Button */}
+          {/* Start Button - Only visible to host */}
           <div className="text-center">
-            <Button
-              onClick={handleStart}
-              size="lg"
-              className="bg-yellow-500 hover:bg-yellow-600 text-white text-xl px-12 py-6"
-            >
-              <Play className="h-6 w-6 mr-3" />
-              Bắt đầu cuộc thi
-            </Button>
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 text-blue-200">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Đang tải...</span>
+              </div>
+            ) : isHost ? (
+              <div className="space-y-4">
+                <div className="mb-4 p-3 bg-yellow-500/20 rounded-lg border border-yellow-300/20 inline-block">
+                  <div className="flex items-center gap-2 text-yellow-200">
+                    <Crown className="h-5 w-5" />
+                    <p className="font-semibold">Bạn là người tổ chức</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleStart}
+                  size="lg"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-xl px-12 py-6"
+                >
+                  <Play className="h-6 w-6 mr-3" />
+                  Bắt đầu cuộc thi
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Alert className="bg-blue-500/20 border-blue-400 max-w-md mx-auto">
+                  <AlertCircle className="h-4 w-4 text-blue-400" />
+                  <AlertDescription className="text-blue-200">
+                    <strong>Đang chờ người tổ chức bắt đầu cuộc thi...</strong>
+                    <p className="text-sm mt-2">
+                      Bạn sẽ tự động được chuyển vào màn hình chơi khi người tổ chức bấm "Bắt đầu cuộc thi"
+                    </p>
+                  </AlertDescription>
+                </Alert>
+                <div className="flex items-center justify-center gap-2 text-blue-200">
+                  <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
