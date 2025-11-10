@@ -37,13 +37,23 @@ const GameHome = () => {
         throw error || new Error('Không thể tạo game');
       }
 
-      // Navigate to character selection instead of joining directly
-      navigate(`/game/character/${game.code}`, {
-        state: {
-          playerName: playerName.trim(),
-          isHost: true,
-        },
+      // Host joins directly without character selection
+      const { player, error: joinError } = await joinGame(game.code, playerName.trim(), true);
+      if (joinError || !player) {
+        throw joinError || new Error('Không thể tham gia game');
+      }
+
+      // Store player ID and host status in localStorage
+      localStorage.setItem(`player_${game.code}`, player.id);
+      localStorage.setItem(`is_host_${game.code}`, 'true');
+
+      toast({
+        title: 'Tạo game thành công!',
+        description: 'Bây giờ hãy tạo câu hỏi cho game',
       });
+
+      // Navigate to questions page
+      navigate(`/game/questions/${game.code}`);
     } catch (error) {
       toast({
         title: 'Lỗi',

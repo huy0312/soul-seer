@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { getAnswersForRound } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { CheckCircle2, XCircle, Trophy, AlertTriangle, Crown } from 'lucide-react';
+import { CheckCircle2, XCircle, Trophy, AlertTriangle, Crown, Volume2, VolumeX } from 'lucide-react';
 
 type Question = Database['public']['Tables']['questions']['Row'] & {
   options?: string[] | null;
@@ -45,7 +45,9 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
   const answeredQuestionIdsRef = useRef<Set<string>>(new Set()); // Track which questions have been answered to prevent duplicate notifications
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -77,6 +79,44 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         : currentQuestion.options)
     : null;
 
+
+  // Background music management
+  useEffect(() => {
+    // Create audio element if not exists
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/music/khoi-dong-bg.mp3');
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.5; // 50% volume
+    }
+
+    const audio = audioRef.current;
+
+    // Play music when round starts (not ended, not showing results)
+    if (!roundEnded && !showResults) {
+      audio.play().catch((error) => {
+        console.error('Error playing background music:', error);
+        // Music might not play due to browser autoplay policy
+      });
+    } else {
+      // Pause music when round ends
+      audio.pause();
+    }
+
+    // Cleanup: pause music when component unmounts
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [roundEnded, showResults]);
+
+  // Handle music mute/unmute
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMusicMuted;
+    }
+  }, [isMusicMuted]);
 
   // Timer for the entire round - when time runs out, show results
   useEffect(() => {
@@ -316,7 +356,25 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold mb-2">Phần 1 - Khởi động</h2>
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <h2 className="text-3xl font-bold">Phần 1 - Khởi động</h2>
+          {/* Music control button */}
+          {!showResults && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMusicMuted(!isMusicMuted)}
+              className="text-white hover:bg-white/20"
+              title={isMusicMuted ? 'Bật nhạc nền' : 'Tắt nhạc nền'}
+            >
+              {isMusicMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </Button>
+          )}
+        </div>
         <p className="text-blue-200">12 câu hỏi trắc nghiệm - Thời gian: {timeLimit} giây</p>
 
         {/* Show leader notification - Update in real-time */}
