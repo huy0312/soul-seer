@@ -139,6 +139,10 @@ const GameHost = () => {
           title: 'Chuyển phần thi',
           description: `Đã chuyển sang ${roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' ? 'Vượt chướng ngại vật' : roundOrder[currentIndex + 1] === 'tang_toc' ? 'Tăng tốc' : 'Về đích'}`,
         });
+        
+        // The real-time subscription will update the game state automatically
+        // Host can stay on this page or navigate to GamePlay to see the round
+        // For now, let the subscription handle the update
       } catch (error) {
         toast({
           title: 'Lỗi',

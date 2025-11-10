@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Round1KhoiDong } from '@/components/game/rounds/Round1KhoiDong';
 import { VideoIntro } from '@/components/game/VideoIntro';
@@ -73,10 +73,8 @@ const GamePlay = () => {
         const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
 
         if (storedPlayerId) {
-          if (isHost) {
-            navigate(`/game/host/${code}`);
-            return;
-          }
+          // Allow host to also see gameplay (for intro videos and round transitions)
+          // But they can still access host panel via direct navigation
           setCurrentPlayerId(storedPlayerId);
         } else {
           navigate(`/game/lobby/${code}`);
@@ -92,10 +90,7 @@ const GamePlay = () => {
 
         await refreshPlayers();
 
-        // Load questions for current round
-        if (gameData.current_round) {
-          await loadQuestionsForRound(gameData.id, gameData.current_round);
-        }
+        // Load questions for current round will be handled by useEffect below
 
         // Reset video intro state when loading game
         setShowVideoIntro(false);
@@ -150,44 +145,55 @@ const GamePlay = () => {
           if (updatedGame.status === 'finished') {
             navigate(`/game/results/${code}`);
           } else if (updatedGame.current_round && updatedGame.current_round !== prevRoundRef.current) {
-            // Round changed - check if we need to show video intro for new round
-            let introVideos: Record<string, string> | null = null;
-            
-            // Parse intro_videos if it's a string (JSON)
-            if (typeof updatedGame.intro_videos === 'string') {
-              try {
-                introVideos = JSON.parse(updatedGame.intro_videos);
-              } catch (e) {
-                console.error('Error parsing intro_videos JSON:', e);
-              }
-            } else if (typeof updatedGame.intro_videos === 'object' && updatedGame.intro_videos !== null) {
-              introVideos = updatedGame.intro_videos as Record<string, string>;
-            }
-            
-            console.log('=== Round Changed - Video Intro Debug ===');
+            // Round changed - reset video intro state for new round
+            console.log('=== Round Changed ===');
+            console.log('Previous round:', prevRoundRef.current);
             console.log('New round:', updatedGame.current_round);
-            console.log('Intro videos:', introVideos);
-            console.log('Video for new round:', introVideos?.[updatedGame.current_round]);
-            console.log('Video intro completed:', Array.from(videoIntroCompleted));
             
-            const videoUrl = introVideos?.[updatedGame.current_round];
-            const hasVideo = videoUrl && videoUrl.trim();
-            const notCompleted = !videoIntroCompleted.has(updatedGame.current_round);
-            const notChecked = !videoIntroCheckedRef.current.has(updatedGame.current_round);
+            // Reset video intro state for the new round
+            setShowVideoIntro(false);
+            setCurrentIntroVideo(null);
+            // Remove the new round from completed set if it was there (fresh start for this round)
+            setVideoIntroCompleted((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(updatedGame.current_round as RoundType);
+              return newSet;
+            });
+            // Remove the new round from checked ref (fresh start for this round)
+            videoIntroCheckedRef.current.delete(updatedGame.current_round as RoundType);
             
-            if (hasVideo && notCompleted && notChecked) {
-              console.log('✅ Setting video intro for new round:', videoUrl);
-              videoIntroCheckedRef.current.add(updatedGame.current_round);
-              setCurrentIntroVideo(videoUrl);
-              setShowVideoIntro(true);
-            } else {
-              console.log('❌ Not showing video intro for new round:', {
-                hasVideo,
-                notCompleted,
-                notChecked,
-              });
-            }
-            loadQuestionsForRound(updatedGame.id, updatedGame.current_round);
+            // Check for video intro after state updates
+            setTimeout(() => {
+              let introVideos: Record<string, string> | null = null;
+              
+              // Parse intro_videos if it's a string (JSON)
+              if (typeof updatedGame.intro_videos === 'string') {
+                try {
+                  introVideos = JSON.parse(updatedGame.intro_videos);
+                } catch (e) {
+                  console.error('Error parsing intro_videos JSON:', e);
+                }
+              } else if (typeof updatedGame.intro_videos === 'object' && updatedGame.intro_videos !== null) {
+                introVideos = updatedGame.intro_videos as Record<string, string>;
+              }
+              
+              console.log('=== Video Intro Check After Round Change ===');
+              console.log('Intro videos:', introVideos);
+              console.log('Video for new round:', introVideos?.[updatedGame.current_round]);
+              
+              const videoUrl = introVideos?.[updatedGame.current_round];
+              const hasVideo = videoUrl && videoUrl.trim();
+              
+              if (hasVideo) {
+                console.log('✅ Setting video intro for new round:', videoUrl);
+                videoIntroCheckedRef.current.add(updatedGame.current_round as RoundType);
+                setCurrentIntroVideo(videoUrl);
+                setShowVideoIntro(true);
+              } else {
+                console.log('❌ No video URL for new round');
+              }
+            }, 100);
+            
             prevRoundRef.current = updatedGame.current_round as RoundType;
           }
         });
@@ -208,13 +214,6 @@ const GamePlay = () => {
       }
     };
 
-    const loadQuestionsForRound = async (gameId: string, round: RoundType) => {
-      const { questions: questionsData, error: questionsError } = await getQuestions(gameId, round);
-      if (!questionsError && questionsData) {
-        setQuestions(questionsData);
-      }
-    };
-
     loadGame();
 
     return () => {
@@ -222,6 +221,26 @@ const GamePlay = () => {
       if (unsubscribePlayers) unsubscribePlayers();
     };
   }, [code, navigate]);
+
+  // Function to load questions for a round - memoized with useCallback
+  const loadQuestionsForRound = useCallback(async (gameId: string, round: RoundType): Promise<void> => {
+    const { questions: questionsData, error: questionsError } = await getQuestions(gameId, round);
+    if (!questionsError && questionsData) {
+      console.log(`Loaded ${questionsData.length} questions for round: ${round}`);
+      setQuestions(questionsData);
+    } else {
+      console.error('Error loading questions:', questionsError);
+      setQuestions([]);
+    }
+  }, []);
+
+  // Effect to handle round changes and ensure questions are loaded
+  useEffect(() => {
+    if (game?.current_round && game.id) {
+      console.log('Round changed effect triggered:', game.current_round);
+      loadQuestionsForRound(game.id, game.current_round as RoundType);
+    }
+  }, [game?.current_round, game?.id, loadQuestionsForRound]);
 
   const handleSubmitAnswer = async (questionId: string, answer: string, responseTime?: number, useStar?: boolean): Promise<Answer | null> => {
     if (!currentPlayerId) return null;
