@@ -131,8 +131,8 @@ const GamePlay = () => {
     };
   }, [code, navigate]);
 
-  const handleSubmitAnswer = async (questionId: string, answer: string, responseTime?: number, useStar?: boolean) => {
-    if (!currentPlayerId) return;
+  const handleSubmitAnswer = async (questionId: string, answer: string, responseTime?: number, useStar?: boolean): Promise<Answer | null> => {
+    if (!currentPlayerId) return null;
 
     try {
       const { answer: answerData, error } = await submitAnswer(currentPlayerId, questionId, answer, responseTime, useStar);
@@ -150,19 +150,19 @@ const GamePlay = () => {
           // This would be handled in the backend
         }
 
-        toast({
-          title: answerData.is_correct ? 'Đúng!' : 'Sai!',
-          description: answerData.is_correct
-            ? `Bạn đã nhận được ${answerData.points_earned} điểm`
-            : 'Hãy cố gắng ở câu tiếp theo',
-        });
+        // Don't show toast here - let the component handle it to avoid duplicates
+        // Toast will be shown in the component after state is updated
+
+        return answerData;
       }
+      return null;
     } catch (error) {
       toast({
         title: 'Lỗi',
         description: error instanceof Error ? error.message : 'Không thể gửi câu trả lời',
         variant: 'destructive',
       });
+      return null;
     }
   };
 

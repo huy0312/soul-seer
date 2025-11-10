@@ -19,7 +19,7 @@ interface Round1KhoiDongProps {
   questions: Question[];
   players: Player[];
   currentPlayerId: string;
-  onSubmitAnswer: (questionId: string, answer: string) => Promise<void>;
+  onSubmitAnswer: (questionId: string, answer: string) => Promise<Answer | null>;
   onRoundComplete: () => void;
   timeLimit?: number; // Total time for the round in seconds (default 60)
 }
@@ -43,10 +43,22 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const [penaltyApplied, setPenaltyApplied] = useState(false);
   const lastVisibilityChangeRef = useRef<number>(0);
   const isVisibleRef = useRef<boolean>(true);
+  const answeredQuestionIdsRef = useRef<Set<string>>(new Set()); // Track which questions have been answered to prevent duplicate notifications
+  const lastPenaltyTimeRef = useRef<number>(0); // Track last penalty time to prevent multiple penalties in short time
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
+  
+  // Reset selected answer when question changes
+  useEffect(() => {
+    if (currentQuestion) {
+      // Only reset if we don't have an answer yet for this question
+      if (!currentAnswer) {
+        setSelectedAnswer('');
+      }
+    }
+  }, [currentQuestionIndex, currentQuestion?.id, currentAnswer]);
   const totalScore = currentPlayer?.score || 0;
   const answeredCount = playerAnswers.size;
   const correctCount = Array.from(playerAnswers.values()).filter((a) => a.is_correct).length;
@@ -58,83 +70,94 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         : currentQuestion.options)
     : null;
 
-  // Detect tab/window visibility changes and apply penalty
+  // Detect tab/window visibility changes and apply penalty IMMEDIATELY when leaving
   useEffect(() => {
     if (roundEnded || showResults) return;
 
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
-      const now = Date.now();
 
-      // If tab becomes hidden (user switched away)
+      // If tab becomes hidden (user switched away) - APPLY PENALTY IMMEDIATELY
       if (!isVisible && isVisibleRef.current) {
         isVisibleRef.current = false;
+        const now = Date.now();
         lastVisibilityChangeRef.current = now;
+        
+        // Prevent multiple penalties within 2 seconds
+        if (now - lastPenaltyTimeRef.current < 2000) {
+          return;
+        }
+        
+        lastPenaltyTimeRef.current = now;
+        
+        // Apply penalty immediately when leaving
+        setRoundTimeLeft((prev) => {
+          const newTime = Math.max(0, prev - 15); // Subtract 15 seconds immediately
+          setTabSwitchCount((count) => count + 1);
+          setPenaltyApplied(true);
+          
+          toast({
+            title: 'Cảnh báo!',
+            description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
+            variant: 'destructive',
+          });
+
+          // Reset penalty flag after showing
+          setTimeout(() => setPenaltyApplied(false), 3000);
+
+          if (newTime <= 0) {
+            setRoundEnded(true);
+            return 0;
+          }
+          return newTime;
+        });
       }
       // If tab becomes visible again (user came back)
       else if (isVisible && !isVisibleRef.current) {
         isVisibleRef.current = true;
-        const timeAway = now - lastVisibilityChangeRef.current;
-
-        // Only apply penalty if user was away for more than 1 second (to avoid false positives)
-        if (timeAway > 1000) {
-          setRoundTimeLeft((prev) => {
-            const newTime = Math.max(0, prev - 15); // Subtract 15 seconds
-            setTabSwitchCount((count) => count + 1);
-            setPenaltyApplied(true);
-            
-            toast({
-              title: 'Cảnh báo!',
-              description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
-              variant: 'destructive',
-            });
-
-            // Reset penalty flag after showing
-            setTimeout(() => setPenaltyApplied(false), 3000);
-
-            if (newTime <= 0) {
-              setRoundEnded(true);
-              return 0;
-            }
-            return newTime;
-          });
-        }
+        // No penalty on return, already applied when leaving
       }
     };
 
     const handleBlur = () => {
-      if (!document.hidden && isVisibleRef.current) {
+      // Apply penalty immediately when window loses focus
+      if (isVisibleRef.current && !roundEnded && !showResults) {
         isVisibleRef.current = false;
-        lastVisibilityChangeRef.current = Date.now();
+        const now = Date.now();
+        lastVisibilityChangeRef.current = now;
+        
+        // Prevent multiple penalties within 2 seconds
+        if (now - lastPenaltyTimeRef.current < 2000) {
+          return;
+        }
+        
+        lastPenaltyTimeRef.current = now;
+        
+        setRoundTimeLeft((prev) => {
+          const newTime = Math.max(0, prev - 15);
+          setTabSwitchCount((count) => count + 1);
+          setPenaltyApplied(true);
+          
+          toast({
+            title: 'Cảnh báo!',
+            description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
+            variant: 'destructive',
+          });
+
+          setTimeout(() => setPenaltyApplied(false), 3000);
+
+          if (newTime <= 0) {
+            setRoundEnded(true);
+            return 0;
+          }
+          return newTime;
+        });
       }
     };
 
     const handleFocus = () => {
-      if (!document.hidden && !isVisibleRef.current) {
-        const now = Date.now();
-        const timeAway = now - lastVisibilityChangeRef.current;
-
-        if (timeAway > 1000) {
-          setRoundTimeLeft((prev) => {
-            const newTime = Math.max(0, prev - 15);
-            setTabSwitchCount((count) => count + 1);
-            setPenaltyApplied(true);
-            
-            toast({
-              title: 'Cảnh báo!',
-              description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
-              variant: 'destructive',
-            });
-
-            setTimeout(() => setPenaltyApplied(false), 3000);
-
-            if (newTime <= 0) {
-              setRoundEnded(true);
-              return 0;
-            }
-            return newTime;
-          });
-        }
+      // Just mark as visible when returning, no penalty
+      if (!isVisibleRef.current) {
         isVisibleRef.current = true;
       }
     };
@@ -170,11 +193,12 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
 
   // Auto advance to next question after answering
   useEffect(() => {
-    if (currentAnswer && !roundEnded && !showResults) {
+    if (currentAnswer && !roundEnded && !showResults && currentQuestion) {
       // Auto advance after 2 seconds
       const timer = setTimeout(() => {
         if (currentQuestionIndex < questions.length - 1) {
-          setCurrentQuestionIndex((prev) => prev + 1);
+          const nextIndex = currentQuestionIndex + 1;
+          setCurrentQuestionIndex(nextIndex);
           setSelectedAnswer('');
         }
         // Don't auto-end round, wait for timer or host to move to next round
@@ -182,7 +206,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [currentAnswer, currentQuestionIndex, questions.length, roundEnded, showResults]);
+  }, [currentAnswer, currentQuestionIndex, questions.length, roundEnded, showResults, currentQuestion]);
 
   // When round ends, show results
   useEffect(() => {
@@ -203,10 +227,19 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const handleSubmit = async () => {
     if (!currentQuestion || submitting || !selectedAnswer || currentAnswer || roundEnded) return;
 
+    // Prevent duplicate submissions
+    if (answeredQuestionIdsRef.current.has(currentQuestion.id)) {
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await onSubmitAnswer(currentQuestion.id, selectedAnswer);
-      // Answer will be updated via subscription or refetch
+      const answerData = await onSubmitAnswer(currentQuestion.id, selectedAnswer);
+      // Update local state immediately with the answer
+      if (answerData && currentQuestion) {
+        setPlayerAnswers((prev) => new Map(prev.set(currentQuestion.id, answerData)));
+        answeredQuestionIdsRef.current.add(currentQuestion.id);
+      }
     } catch (error) {
       console.error('Error submitting answer:', error);
     } finally {
@@ -214,9 +247,14 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
     }
   };
 
-  // Auto submit when answer is selected (optional - can be changed to require button click)
+  // Auto submit when answer is selected
   useEffect(() => {
     if (selectedAnswer && !currentAnswer && !submitting && !roundEnded && currentQuestion) {
+      // Check if already answered to prevent duplicate
+      if (answeredQuestionIdsRef.current.has(currentQuestion.id)) {
+        return;
+      }
+      
       const timer = setTimeout(() => {
         handleSubmit();
       }, 500); // Auto submit after 500ms of selection
