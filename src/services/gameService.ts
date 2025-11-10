@@ -180,6 +180,26 @@ export async function updateGameIntroVideos(
   }
 }
 
+// Update VCNV config (cols, 4 words, central answer)
+export async function updateVCNVConfig(
+  gameId: string,
+  config: { cols: number; words: [string, string, string, string]; central: string }
+): Promise<{ error: Error | null }> {
+  try {
+    const sanitized = {
+      cols: Math.max(1, Math.min(30, Math.floor(config.cols || 1))),
+      rows: 4,
+      words: config.words.map((w) => (w || '').trim()),
+      central: (config.central || '').trim(),
+    };
+    const { error } = await supabase.from('games').update({ vcnv_config: sanitized }).eq('id', gameId);
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+}
+
 // Upload video file to Supabase storage
 export async function uploadIntroVideo(
   gameId: string,
@@ -361,7 +381,16 @@ export async function submitAnswer(
 
     if (questionError || !question) throw new Error('Question not found');
 
-    const isCorrect = answerText.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
+    // Normalize Vietnamese for comparison (remove diacritics, lowercase, trim)
+    const normalize = (s: string) =>
+      s
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'd')
+        .toLowerCase()
+        .trim();
+    const isCorrect = normalize(answerText) === normalize(question.correct_answer);
     
     // Calculate points based on round and special conditions
     let pointsEarned = 0;

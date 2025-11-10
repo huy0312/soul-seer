@@ -64,7 +64,7 @@ export const Podium: React.FC<PodiumProps> = ({ player, position, isHost = false
                     <User className="h-8 w-8 text-white hidden" />
                   </>
                 ) : (
-                  <User className="h-8 w-8 text-white" />
+                <User className="h-8 w-8 text-white" />
                 )}
               </div>
               {isHost && (

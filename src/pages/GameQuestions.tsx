@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, updateVCNVConfig } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -63,6 +63,7 @@ const GameQuestions = () => {
   });
 
   // VCNV (Vuot chuong ngai vat) config state
+  const [vcnvCols, setVcnvCols] = useState<number>(8);
   const [vcnvRows, setVcnvRows] = useState<Array<{ word: string; hint: string }>>([
     { word: '', hint: '' },
     { word: '', hint: '' },
@@ -93,6 +94,22 @@ const GameQuestions = () => {
             tang_toc: videos.tang_toc || '',
             ve_dich: videos.ve_dich || '',
           });
+        }
+        // Load existing VCNV config if any
+        if (game.vcnv_config && typeof game.vcnv_config === 'object') {
+          try {
+            const cfg = game.vcnv_config as any;
+            if (cfg?.cols) setVcnvCols(Number(cfg.cols) || 8);
+            if (Array.isArray(cfg?.words) && cfg.words.length === 4) {
+              setVcnvRows([
+                { word: cfg.words[0] || '', hint: vcnvRows[0].hint },
+                { word: cfg.words[1] || '', hint: vcnvRows[1].hint },
+                { word: cfg.words[2] || '', hint: vcnvRows[2].hint },
+                { word: cfg.words[3] || '', hint: vcnvRows[3].hint },
+              ]);
+            }
+            if (cfg?.central) setVcnvCentral(cfg.central || '');
+          } catch {}
         }
         setLoading(false);
       } catch (error) {
@@ -220,13 +237,13 @@ const GameQuestions = () => {
           const matchesOption = trimmedOptions.some((opt) => opt.toLowerCase() === trimmedCorrectAnswer.toLowerCase());
           
           if (!matchesOption) {
-            toast({
-              title: 'Lỗi',
+          toast({
+            title: 'Lỗi',
               description: `Đáp án đúng phải là một trong 4 đáp án đã nhập cho ${roundLabels[round]} - Câu ${i + 1}. Đáp án hiện tại: "${trimmedCorrectAnswer}"`,
-              variant: 'destructive',
-            });
-            return;
-          }
+            variant: 'destructive',
+          });
+          return;
+        }
         }
       }
     }
@@ -241,6 +258,17 @@ const GameQuestions = () => {
       }
       if (!central) {
         toast({ title: 'Lỗi', description: 'Vui lòng nhập đáp án chướng ngại vật trung tâm', variant: 'destructive' });
+        return;
+      }
+      // Validate columns: all words must have exactly vcnvCols characters when removing spaces
+      const stripSpaces = (s: string) => s.replace(/\s+/g, '');
+      const invalid = rows.find((r) => stripSpaces(r.word).length !== vcnvCols);
+      if (invalid) {
+        toast({
+          title: 'Lỗi',
+          description: `Số cột đã chọn là ${vcnvCols}. Mỗi từ hàng ngang phải có đúng ${vcnvCols} ký tự (không tính khoảng trắng).`,
+          variant: 'destructive',
+        });
         return;
       }
     }
@@ -314,6 +342,24 @@ const GameQuestions = () => {
 
       const { error } = await createQuestions(gameId, allQuestions);
       if (error) throw error;
+
+      // Save VCNV config to game
+      {
+        const cfg = {
+          cols: vcnvCols,
+          words: [vcnvRows[0].word.trim(), vcnvRows[1].word.trim(), vcnvRows[2].word.trim(), vcnvRows[3].word.trim()] as [string, string, string, string],
+          central: vcnvCentral.trim(),
+        };
+        const { error: cfgError } = await updateVCNVConfig(gameId, cfg);
+        if (cfgError) {
+          console.error('Error updating VCNV config:', cfgError);
+          toast({
+            title: 'Cảnh báo',
+            description: `Không thể lưu cấu hình VCNV. ${cfgError.message}`,
+            variant: 'destructive',
+          });
+        }
+      }
 
       // Process intro videos for all rounds
       const finalIntroVideos: Record<RoundType, string | null> = {
@@ -449,6 +495,25 @@ const GameQuestions = () => {
                     {round === 'vuot_chuong_ngai_vat' ? (
                       <div className="space-y-6">
                         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                          <h4 className="font-semibold mb-2">Thiết lập lưới</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label className="text-white mb-2 block">Số cột</Label>
+                              <Input
+                                type="number"
+                                min={3}
+                                max={20}
+                                value={vcnvCols}
+                                onChange={(e) => setVcnvCols(Math.max(1, Math.min(30, parseInt(e.target.value || '0'))))}
+                                className="bg-white text-gray-800"
+                              />
+                              <p className="text-xs text-blue-200 mt-1">
+                                Mỗi từ hàng ngang phải có đúng {vcnvCols} ký tự (không tính khoảng trắng).
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                           <h4 className="font-semibold mb-4">Cấu hình 4 hàng ngang</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {vcnvRows.map((row, idx) => (
@@ -490,51 +555,51 @@ const GameQuestions = () => {
                             className="bg.WHITE text-gray-800"
                           />
                         </div>
-                      </div>
+                    </div>
                     ) : (
                       <div className="space-y-4">
                         {/* Generic question builder for other rounds (kept as before) */}
-                        {questions[round].length === 0 ? (
-                          <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
-                            <p className="text-blue-200 mb-4">Chưa có câu hỏi nào</p>
-                            <Button
-                              onClick={() => addQuestion(round)}
-                              variant="outline"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Thêm câu hỏi đầu tiên
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {questions[round].map((question, index) => (
-                              <Card key={index} className="bg-white/5 border-white/10">
-                                <CardContent className="p-6">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <h4 className="font-semibold text-lg">Câu {index + 1}</h4>
-                                    <Button
-                                      onClick={() => removeQuestion(round, index)}
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label htmlFor={`question-${round}-${index}`} className="text-white mb-2">
-                                        Câu hỏi
-                                      </Label>
-                                      <Textarea
-                                        id={`question-${round}-${index}`}
-                                        value={question.question_text}
+                    {questions[round].length === 0 ? (
+                      <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
+                        <p className="text-blue-200 mb-4">Chưa có câu hỏi nào</p>
+                        <Button
+                          onClick={() => addQuestion(round)}
+                          variant="outline"
+                          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Thêm câu hỏi đầu tiên
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {questions[round].map((question, index) => (
+                          <Card key={index} className="bg-white/5 border-white/10">
+                            <CardContent className="p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-semibold text-lg">Câu {index + 1}</h4>
+                                <Button
+                                  onClick={() => removeQuestion(round, index)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor={`question-${round}-${index}`} className="text-white mb-2">
+                                    Câu hỏi
+                                  </Label>
+                                  <Textarea
+                                    id={`question-${round}-${index}`}
+                                    value={question.question_text}
                                         onChange={(e) => updateQuestion(round, index, 'question_text', e.target.value)}
-                                        placeholder="Nhập câu hỏi..."
-                                        className="bg-white text-gray-800 min-h-[100px]"
-                                      />
-                                    </div>
+                                    placeholder="Nhập câu hỏi..."
+                                    className="bg-white text-gray-800 min-h-[100px]"
+                                  />
+                                </div>
                                     {round === 'khoi_dong' && (
                                       <div>
                                         <Label className="text-white mb-2 block">4 Đáp án</Label>
@@ -554,8 +619,8 @@ const GameQuestions = () => {
                                         </div>
                                       </div>
                                     )}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
                                         <Label htmlFor={`answer-${round}-${index}`} className="text-white mb-2">Đáp án đúng</Label>
                                         {round === 'khoi_dong' && question.options ? (
                                           <select
@@ -570,33 +635,33 @@ const GameQuestions = () => {
                                             ))}
                                           </select>
                                         ) : (
-                                          <Input
-                                            id={`answer-${round}-${index}`}
-                                            type="text"
-                                            value={question.correct_answer}
+                                    <Input
+                                      id={`answer-${round}-${index}`}
+                                      type="text"
+                                      value={question.correct_answer}
                                             onChange={(e) => updateQuestion(round, index, 'correct_answer', e.target.value)}
-                                            placeholder="Nhập đáp án đúng..."
-                                            className="bg-white text-gray-800"
-                                          />
+                                      placeholder="Nhập đáp án đúng..."
+                                      className="bg-white text-gray-800"
+                                    />
                                         )}
-                                      </div>
-                                      <div>
-                                        <Label htmlFor={`points-${round}-${index}`} className="text-white mb-2">Điểm số</Label>
-                                        <Input
-                                          id={`points-${round}-${index}`}
-                                          type="number"
-                                          value={question.points}
-                                          onChange={(e) => updateQuestion(round, index, 'points', parseInt(e.target.value) || 10)}
-                                          min="1"
-                                          max="100"
-                                          className="bg-white text-gray-800"
-                                        />
-                                      </div>
-                                    </div>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            ))}
+                                  <div>
+                                        <Label htmlFor={`points-${round}-${index}`} className="text-white mb-2">Điểm số</Label>
+                                    <Input
+                                      id={`points-${round}-${index}`}
+                                      type="number"
+                                      value={question.points}
+                                          onChange={(e) => updateQuestion(round, index, 'points', parseInt(e.target.value) || 10)}
+                                      min="1"
+                                      max="100"
+                                      className="bg-white text-gray-800"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                           </div>
                         )}
                       </div>
