@@ -277,6 +277,7 @@ const GameQuestions = () => {
           // Upload file
           setUploadingVideo((prev) => ({ ...prev, [round]: true }));
           try {
+            console.log(`Uploading video for ${round}:`, videoFile.name);
             const { url, error: uploadError } = await uploadIntroVideo(gameId, videoFile);
             if (uploadError) {
               console.error(`Error uploading video for ${round}:`, uploadError);
@@ -286,24 +287,40 @@ const GameQuestions = () => {
                 variant: 'destructive',
               });
             } else if (url) {
+              console.log(`✅ Video uploaded for ${round}, URL:`, url);
               finalIntroVideos[round] = url;
+            } else {
+              console.error(`❌ No URL returned for ${round}`);
             }
           } catch (error) {
-            console.error(`Error uploading video for ${round}:`, error);
+            console.error(`Exception uploading video for ${round}:`, error);
           } finally {
             setUploadingVideo((prev) => ({ ...prev, [round]: false }));
           }
         } else if (videoPath) {
           // Use path/URL directly
+          console.log(`Using direct path/URL for ${round}:`, videoPath);
           finalIntroVideos[round] = videoPath;
         }
       }
+
+      console.log('Final intro videos to save:', finalIntroVideos);
 
       // Update intro videos in database
       const { error: videoError } = await updateGameIntroVideos(gameId, finalIntroVideos);
       if (videoError) {
         console.error('Error updating intro videos:', videoError);
-        // Don't fail the whole save if video update fails
+        toast({
+          title: 'Cảnh báo',
+          description: `Không thể lưu video intro. ${videoError.message}`,
+          variant: 'destructive',
+        });
+      } else {
+        console.log('✅ Intro videos saved successfully');
+        toast({
+          title: 'Thành công',
+          description: 'Video intro đã được lưu thành công!',
+        });
       }
 
       toast({

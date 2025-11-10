@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Round1KhoiDong } from '@/components/game/rounds/Round1KhoiDong';
 import { VideoIntro } from '@/components/game/VideoIntro';
@@ -36,6 +36,7 @@ const GamePlay = () => {
   const [showVideoIntro, setShowVideoIntro] = useState(false);
   const [videoIntroCompleted, setVideoIntroCompleted] = useState<Set<RoundType>>(new Set());
   const [currentIntroVideo, setCurrentIntroVideo] = useState<string | null>(null);
+  const videoIntroCheckedRef = useRef<Set<RoundType>>(new Set());
 
   useEffect(() => {
     if (!code) {
@@ -94,13 +95,51 @@ const GamePlay = () => {
           await loadQuestionsForRound(gameData.id, gameData.current_round);
         }
 
+        // Reset video intro state when loading game
+        setShowVideoIntro(false);
+        setCurrentIntroVideo(null);
+        videoIntroCheckedRef.current.clear();
+
         // Check if we need to show video intro for current round
         if (gameData.current_round && gameData.intro_videos) {
-          const introVideos = gameData.intro_videos as Record<string, string> | null;
-          if (introVideos && introVideos[gameData.current_round] && !videoIntroCompleted.has(gameData.current_round)) {
-            setCurrentIntroVideo(introVideos[gameData.current_round]);
-            setShowVideoIntro(true);
+          let introVideos: Record<string, string> | null = null;
+          
+          // Parse intro_videos if it's a string (JSON)
+          if (typeof gameData.intro_videos === 'string') {
+            try {
+              introVideos = JSON.parse(gameData.intro_videos);
+            } catch (e) {
+              console.error('Error parsing intro_videos JSON:', e);
+            }
+          } else if (typeof gameData.intro_videos === 'object' && gameData.intro_videos !== null) {
+            introVideos = gameData.intro_videos as Record<string, string>;
           }
+          
+          console.log('=== Video Intro Debug (Load Game) ===');
+          console.log('Intro videos raw:', gameData.intro_videos);
+          console.log('Intro videos parsed:', introVideos);
+          console.log('Current round:', gameData.current_round);
+          console.log('Video for current round:', introVideos?.[gameData.current_round]);
+          
+          const videoUrl = introVideos?.[gameData.current_round];
+          const hasVideo = videoUrl && videoUrl.trim();
+          
+          console.log('Has video URL:', hasVideo);
+          console.log('Video URL:', videoUrl);
+          
+          if (hasVideo) {
+            console.log('✅ Setting video intro:', videoUrl);
+            videoIntroCheckedRef.current.add(gameData.current_round);
+            setCurrentIntroVideo(videoUrl);
+            setShowVideoIntro(true);
+          } else {
+            console.log('❌ No video URL for current round');
+          }
+        } else {
+          console.log('❌ No intro videos or current round:', {
+            hasCurrentRound: !!gameData.current_round,
+            hasIntroVideos: !!gameData.intro_videos,
+          });
         }
 
         // Subscribe to game changes
@@ -110,10 +149,41 @@ const GamePlay = () => {
             navigate(`/game/results/${code}`);
           } else if (updatedGame.current_round && updatedGame.current_round !== gameData.current_round) {
             // Round changed - check if we need to show video intro for new round
-            const introVideos = updatedGame.intro_videos as Record<string, string> | null;
-            if (introVideos && introVideos[updatedGame.current_round] && !videoIntroCompleted.has(updatedGame.current_round)) {
-              setCurrentIntroVideo(introVideos[updatedGame.current_round]);
+            let introVideos: Record<string, string> | null = null;
+            
+            // Parse intro_videos if it's a string (JSON)
+            if (typeof updatedGame.intro_videos === 'string') {
+              try {
+                introVideos = JSON.parse(updatedGame.intro_videos);
+              } catch (e) {
+                console.error('Error parsing intro_videos JSON:', e);
+              }
+            } else if (typeof updatedGame.intro_videos === 'object' && updatedGame.intro_videos !== null) {
+              introVideos = updatedGame.intro_videos as Record<string, string>;
+            }
+            
+            console.log('=== Round Changed - Video Intro Debug ===');
+            console.log('New round:', updatedGame.current_round);
+            console.log('Intro videos:', introVideos);
+            console.log('Video for new round:', introVideos?.[updatedGame.current_round]);
+            console.log('Video intro completed:', Array.from(videoIntroCompleted));
+            
+            const videoUrl = introVideos?.[updatedGame.current_round];
+            const hasVideo = videoUrl && videoUrl.trim();
+            const notCompleted = !videoIntroCompleted.has(updatedGame.current_round);
+            const notChecked = !videoIntroCheckedRef.current.has(updatedGame.current_round);
+            
+            if (hasVideo && notCompleted && notChecked) {
+              console.log('✅ Setting video intro for new round:', videoUrl);
+              videoIntroCheckedRef.current.add(updatedGame.current_round);
+              setCurrentIntroVideo(videoUrl);
               setShowVideoIntro(true);
+            } else {
+              console.log('❌ Not showing video intro for new round:', {
+                hasVideo,
+                notCompleted,
+                notChecked,
+              });
             }
             loadQuestionsForRound(updatedGame.id, updatedGame.current_round);
           }
@@ -273,9 +343,15 @@ const GamePlay = () => {
       <VideoIntro
         videoUrl={currentIntroVideo}
         onComplete={() => {
+          console.log('Video intro completed for round:', game.current_round);
           setShowVideoIntro(false);
           if (game.current_round) {
-            setVideoIntroCompleted((prev) => new Set(prev).add(game.current_round!));
+            setVideoIntroCompleted((prev) => {
+              const newSet = new Set(prev);
+              newSet.add(game.current_round!);
+              console.log('Updated completed rounds:', Array.from(newSet));
+              return newSet;
+            });
           }
           setCurrentIntroVideo(null);
         }}

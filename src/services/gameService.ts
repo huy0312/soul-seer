@@ -150,14 +150,30 @@ export async function updateGameIntroVideos(
   introVideos: Record<RoundType, string | null>
 ): Promise<{ error: Error | null }> {
   try {
+    // Filter out null values to keep JSON clean
+    const videosToSave: Record<string, string> = {};
+    for (const [round, url] of Object.entries(introVideos)) {
+      if (url && url.trim()) {
+        videosToSave[round] = url.trim();
+      }
+    }
+    
+    console.log('Saving intro videos:', videosToSave);
+    
     const { error } = await supabase
       .from('games')
-      .update({ intro_videos: introVideos })
+      .update({ intro_videos: videosToSave })
       .eq('id', gameId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating intro videos:', error);
+      throw error;
+    }
+    
+    console.log('Intro videos saved successfully');
     return { error: null };
   } catch (error) {
+    console.error('Exception updating intro videos:', error);
     return { error: error as Error };
   }
 }
