@@ -1,5 +1,5 @@
 import type { Database } from '@/integrations/supabase/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award } from 'lucide-react';
 
@@ -36,6 +36,9 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4 
           >
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
+                {player.avatar_url && (
+                  <AvatarImage src={player.avatar_url} alt={player.name} />
+                )}
                 <AvatarFallback className="bg-blue-500 text-white font-bold">
                   {player.name.charAt(0).toUpperCase()}
                 </AvatarFallback>

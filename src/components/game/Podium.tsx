@@ -44,8 +44,28 @@ export const Podium: React.FC<PodiumProps> = ({ player, position, isHost = false
         {player ? (
           <div className="flex flex-col items-center gap-1">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 flex items-center justify-center">
-                <User className="h-8 w-8 text-white" />
+              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 flex items-center justify-center overflow-hidden relative">
+                {player.avatar_url ? (
+                  <>
+                    <img
+                      src={player.avatar_url}
+                      alt={player.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide image and show icon fallback
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const icon = target.nextElementSibling as HTMLElement;
+                        if (icon) {
+                          icon.style.display = 'block';
+                        }
+                      }}
+                    />
+                    <User className="h-8 w-8 text-white hidden" />
+                  </>
+                ) : (
+                  <User className="h-8 w-8 text-white" />
+                )}
               </div>
               {isHost && (
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-xs">

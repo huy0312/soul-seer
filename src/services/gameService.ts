@@ -51,7 +51,8 @@ export async function createGame(): Promise<{ game: Game | null; error: Error | 
 export async function joinGame(
   code: string,
   playerName: string,
-  isHost: boolean = false
+  isHost: boolean = false,
+  avatarUrl?: string
 ): Promise<{ player: Player | null; error: Error | null }> {
   try {
     // First, find the game by code
@@ -117,6 +118,7 @@ export async function joinGame(
         name: playerName,
         score: 0,
         is_host: isHost,
+        avatar_url: avatarUrl || null,
       })
       .select()
       .single();

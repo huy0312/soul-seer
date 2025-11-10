@@ -45,12 +45,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [penaltyApplied, setPenaltyApplied] = useState(false);
-  const lastVisibilityChangeRef = useRef<number>(0);
-  const isVisibleRef = useRef<boolean>(true);
   const answeredQuestionIdsRef = useRef<Set<string>>(new Set()); // Track which questions have been answered to prevent duplicate notifications
-  const lastPenaltyTimeRef = useRef<number>(0); // Track last penalty time to prevent multiple penalties in short time
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -82,111 +77,8 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         : currentQuestion.options)
     : null;
 
-  // Detect tab/window visibility changes and apply penalty IMMEDIATELY when leaving
-  useEffect(() => {
-    if (roundEnded || showResults) return;
 
-    const handleVisibilityChange = () => {
-      const isVisible = !document.hidden;
-
-      // If tab becomes hidden (user switched away) - APPLY PENALTY IMMEDIATELY
-      if (!isVisible && isVisibleRef.current) {
-        isVisibleRef.current = false;
-        const now = Date.now();
-        lastVisibilityChangeRef.current = now;
-        
-        // Prevent multiple penalties within 2 seconds
-        if (now - lastPenaltyTimeRef.current < 2000) {
-          return;
-        }
-        
-        lastPenaltyTimeRef.current = now;
-        
-        // Apply penalty immediately when leaving
-        setRoundTimeLeft((prev) => {
-          const newTime = Math.max(0, prev - 15); // Subtract 15 seconds immediately
-          setTabSwitchCount((count) => count + 1);
-          setPenaltyApplied(true);
-          
-          toast({
-            title: 'Cảnh báo!',
-            description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
-            variant: 'destructive',
-          });
-
-          // Reset penalty flag after showing
-          setTimeout(() => setPenaltyApplied(false), 3000);
-
-          if (newTime <= 0) {
-            setRoundEnded(true);
-            return 0;
-          }
-          return newTime;
-        });
-      }
-      // If tab becomes visible again (user came back)
-      else if (isVisible && !isVisibleRef.current) {
-        isVisibleRef.current = true;
-        // No penalty on return, already applied when leaving
-      }
-    };
-
-    const handleBlur = () => {
-      // Apply penalty immediately when window loses focus
-      if (isVisibleRef.current && !roundEnded && !showResults) {
-        isVisibleRef.current = false;
-        const now = Date.now();
-        lastVisibilityChangeRef.current = now;
-        
-        // Prevent multiple penalties within 2 seconds
-        if (now - lastPenaltyTimeRef.current < 2000) {
-          return;
-        }
-        
-        lastPenaltyTimeRef.current = now;
-        
-        setRoundTimeLeft((prev) => {
-          const newTime = Math.max(0, prev - 15);
-          setTabSwitchCount((count) => count + 1);
-          setPenaltyApplied(true);
-          
-          toast({
-            title: 'Cảnh báo!',
-            description: `Bạn đã rời khỏi màn hình. Bị trừ 15 giây. Thời gian còn lại: ${newTime} giây`,
-            variant: 'destructive',
-          });
-
-          setTimeout(() => setPenaltyApplied(false), 3000);
-
-          if (newTime <= 0) {
-            setRoundEnded(true);
-            return 0;
-          }
-          return newTime;
-        });
-      }
-    };
-
-    const handleFocus = () => {
-      // Just mark as visible when returning, no penalty
-      if (!isVisibleRef.current) {
-        isVisibleRef.current = true;
-      }
-    };
-
-    // Listen to visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [roundEnded, showResults]);
-
-  // Timer for the entire round
+  // Timer for the entire round - when time runs out, show results
   useEffect(() => {
     if (roundEnded || showResults) return;
 
@@ -194,6 +86,17 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       setRoundTimeLeft((prev) => {
         if (prev <= 1) {
           setRoundEnded(true);
+          setShowResults(true);
+          // Notify that time is up
+          toast({
+            title: 'Hết thời gian!',
+            description: 'Thời gian đã hết. Đang tính điểm...',
+            variant: 'default',
+          });
+          // Call onRoundComplete after a brief moment
+          setTimeout(() => {
+            onRoundComplete();
+          }, 500);
           return 0;
         }
         return prev - 1;
@@ -201,7 +104,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [roundEnded, showResults]);
+  }, [roundEnded, showResults, onRoundComplete]);
 
   // Auto advance to next question immediately after answering (no delay)
   useEffect(() => {
@@ -415,36 +318,6 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       <div className="text-center mb-6">
         <h2 className="text-3xl font-bold mb-2">Phần 1 - Khởi động</h2>
         <p className="text-blue-200">12 câu hỏi trắc nghiệm - Thời gian: {timeLimit} giây</p>
-        
-        {/* Initial warning about tab switching penalty */}
-        {tabSwitchCount === 0 && !roundEnded && !showResults && (
-          <Alert className="mt-4 bg-yellow-500/20 border-yellow-400 max-w-md mx-auto">
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
-            <AlertDescription className="text-yellow-200 text-sm">
-              <strong>Lưu ý:</strong> Rời khỏi màn hình sẽ bị trừ 15 giây mỗi lần
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Show penalty count if user has switched tabs */}
-        {tabSwitchCount > 0 && (
-          <Alert className="mt-4 bg-red-500/20 border-red-400 max-w-md mx-auto">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-200">
-              Đã rời khỏi màn hình {tabSwitchCount} lần. Mỗi lần bị trừ 15 giây.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Show immediate penalty notification */}
-        {penaltyApplied && (
-          <Alert className="mt-2 bg-red-500/30 border-red-400 max-w-md mx-auto animate-pulse">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-200 font-semibold">
-              ⚠️ Bị trừ 15 giây vì rời khỏi màn hình!
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Show leader notification - Update in real-time */}
         {leader && !showResults && (

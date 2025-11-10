@@ -37,23 +37,13 @@ const GameHome = () => {
         throw error || new Error('Không thể tạo game');
       }
 
-      // Join as first player (host)
-      const { player, error: joinError } = await joinGame(game.code, playerName, true);
-      if (joinError || !player) {
-        throw joinError || new Error('Không thể tham gia game');
-      }
-
-      // Store player ID and host status in localStorage
-      localStorage.setItem(`player_${game.code}`, player.id);
-      localStorage.setItem(`is_host_${game.code}`, 'true');
-
-      toast({
-        title: 'Tạo game thành công!',
-        description: 'Bây giờ hãy tạo câu hỏi cho game',
+      // Navigate to character selection instead of joining directly
+      navigate(`/game/character/${game.code}`, {
+        state: {
+          playerName: playerName.trim(),
+          isHost: true,
+        },
       });
-
-      // Navigate to questions page
-      navigate(`/game/questions/${game.code}`);
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -75,31 +65,13 @@ const GameHome = () => {
       return;
     }
 
-    setJoining(true);
-    try {
-      const { player, error } = await joinGame(gameCode.toUpperCase(), playerName);
-      if (error || !player) {
-        throw error || new Error('Không thể tham gia game');
-      }
-
-      // Store player ID in localStorage
-      localStorage.setItem(`player_${gameCode.toUpperCase()}`, player.id);
-
-      toast({
-        title: 'Tham gia thành công!',
-        description: 'Đang chuyển đến phòng chờ...',
-      });
-
-      navigate(`/game/lobby/${gameCode.toUpperCase()}`);
-    } catch (error) {
-      toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể tham gia game',
-        variant: 'destructive',
-      });
-    } finally {
-      setJoining(false);
-    }
+    // Navigate to character selection instead of joining directly
+    navigate(`/game/character/${gameCode.toUpperCase()}`, {
+      state: {
+        playerName: playerName.trim(),
+        isHost: false,
+      },
+    });
   };
 
   return (
