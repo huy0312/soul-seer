@@ -13,8 +13,9 @@ import {
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
-import { startVCNVTimer, stopVCNVTimer, awardPoints } from '@/services/gameService';
+import { startVCNVTimer, stopVCNVTimer, awardPoints, emitRoundFinished } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
+import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import type { RoundType } from '@/services/gameService';
@@ -34,6 +35,7 @@ const GameHost = () => {
   const [showRound1Modal, setShowRound1Modal] = useState(false);
   const [round1Monitoring, setRound1Monitoring] = useState(false);
   const [round1QuestionIds, setRound1QuestionIds] = useState<string[]>([]);
+  const [round1Announced, setRound1Announced] = useState(false);
 
   useEffect(() => {
     if (!code) {
@@ -145,6 +147,15 @@ const GameHost = () => {
         }
         if (allCompleted) {
           setShowRound1Modal(true);
+          if (!round1Announced) {
+            setRound1Announced(true);
+            // Broadcast round finished so players return to lobby
+            emitRoundFinished(game.id, 'khoi_dong' as any).catch(() => {});
+          }
+          toast({
+            title: 'Phần Khởi động đã kết thúc',
+            description: 'Tất cả thí sinh đã hoàn thành. Hãy công bố và chuyển sang phần thi tiếp theo.',
+          });
         }
       };
 
@@ -228,6 +239,15 @@ const GameHost = () => {
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
+          <RoundResultModal
+            isOpen={showRound1Modal}
+            players={players}
+            roundName="Phần 1 - Khởi động"
+            onClose={() => {
+              setShowRound1Modal(false);
+              setRound1Monitoring(false);
+            }}
+          />
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -251,37 +271,6 @@ const GameHost = () => {
             {/* Left Column - Scoreboard */}
             <div className="lg:col-span-2 space-y-6">
               <Scoreboard players={playingPlayers} showPositions={true} />
-              {/* Host modal for end of Round 1 */}
-              {showRound1Modal && (
-                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
-                  {/* Inline modal-like summary for clarity; we can use RoundResultModal if preferred */}
-                  <Card className="bg-white/10 border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-2xl">Kết thúc Phần 1 - Khởi động</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-blue-100">Tất cả thí sinh đã hoàn thành. Công bố người dẫn đầu:</p>
-                      <Scoreboard players={playingPlayers} showPositions={true} />
-                      <div className="flex items-center gap-3 pt-2">
-                        <Button
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => setShowRound1Modal(false)}
-                        >
-                          Đóng
-                        </Button>
-                        {canMoveToNextRound && (
-                          <Button
-                            onClick={handleNextRound}
-                            className="bg-yellow-600 hover:bg-yellow-700"
-                          >
-                            Chuyển sang phần thi tiếp theo
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
               {/* VCNV Controls for Host */}
               {game.current_round === 'vuot_chuong_ngai_vat' && (
                 <Card className="bg-white/10 backdrop-blur-lg border-white/20">
