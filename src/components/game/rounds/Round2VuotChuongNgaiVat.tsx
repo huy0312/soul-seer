@@ -100,7 +100,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     const unsubscribe = createVCNVTimerChannel(gameId, (evt) => {
       if (evt.type === 'start') {
         const { durationSec, startedAt } = evt.payload || {};
-        durationRef.current = Number(durationSec) || 10;
+        durationRef.current = Number(durationSec) || 15;
         startedAtRef.current = typeof startedAt === 'number' ? startedAt : Date.now();
         const endAt = startedAtRef.current + durationRef.current * 1000;
         setTimerActive(true);
