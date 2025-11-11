@@ -484,8 +484,11 @@ const GameQuestions = () => {
               <Tabs defaultValue="khoi_dong" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 mb-6">
                   {(Object.keys(roundLabels) as RoundType[]).map((round) => (
-                    <TabsTrigger key={round} value={round} className="text-sm">
-                      {roundLabels[round]}
+                    <TabsTrigger key={round} value={round} className="text-sm flex items-center justify-center gap-2">
+                      <span>{roundLabels[round]}</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-white/10 border border-white/20">
+                        {questions[round]?.length || 0}
+                      </span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -528,7 +531,7 @@ const GameQuestions = () => {
                                     setVcnvRows(next);
                                   }}
                                   placeholder="Nhập từ hàng ngang"
-                                  className="bg.WHITE text-gray-800"
+                                  className="bg-white text-gray-800"
                                 />
                                 <Label className="text-white mb-1 block mt-3">Gợi ý (tuỳ chọn)</Label>
                                 <Input
@@ -539,7 +542,7 @@ const GameQuestions = () => {
                                     setVcnvRows(next);
                                   }}
                                   placeholder="Gợi ý / mô tả cho hàng ngang"
-                                  className="bg.WHITE text-gray-800"
+                                  className="bg-white text-gray-800"
                                 />
                               </div>
                             ))}
@@ -552,7 +555,7 @@ const GameQuestions = () => {
                             value={vcnvCentral}
                             onChange={(e) => setVcnvCentral(e.target.value)}
                             placeholder="Nhập đáp án chướng ngại vật"
-                            className="bg.WHITE text-gray-800"
+                            className="bg-white text-gray-800"
                           />
                         </div>
                     </div>
@@ -664,6 +667,12 @@ const GameQuestions = () => {
                         ))}
                           </div>
                         )}
+                        {/* Quick add */}
+                        <div className="flex justify-end">
+                          <Button onClick={() => addQuestion(round)} className="bg-white/10 border border-white/20 hover:bg-white/20">
+                            <Plus className="h-4 w-4 mr-2" /> Thêm câu hỏi
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </TabsContent>
@@ -770,24 +779,33 @@ const GameQuestions = () => {
             </CardContent>
           </Card>
 
-          {/* Save Button */}
-          <div className="flex justify-end gap-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/game/lobby/${code}`)}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving || Object.values(uploadingVideo).some((v) => v)}
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Save className="h-5 w-5 mr-2" />
-              {Object.values(uploadingVideo).some((v) => v) ? 'Đang upload video...' : saving ? 'Đang lưu...' : 'Lưu tất cả câu hỏi'}
-            </Button>
+          {/* Save Button (Sticky Footer) */}
+          <div className="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-b from-blue-900/60 to-blue-900 backdrop-blur supports-[backdrop-filter]:bg-blue-900/50 border-t border-white/10 mt-8">
+            <div className="container mx-auto px-4">
+              <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+                <p className="text-blue-100 text-sm hidden md:block">
+                  Tổng số câu hỏi: <span className="font-semibold text-white">{(Object.keys(questions) as RoundType[]).reduce((acc, r) => acc + (questions[r]?.length || 0), 0)}</span>
+                </p>
+                <div className="ml-auto flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/game/lobby/${code}`)}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || Object.values(uploadingVideo).some((v) => v)}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Save className="h-5 w-5 mr-2" />
+                    {Object.values(uploadingVideo).some((v) => v) ? 'Đang upload video...' : saving ? 'Đang lưu...' : 'Lưu tất cả câu hỏi'}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
