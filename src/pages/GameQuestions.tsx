@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, updateVCNVConfig, getAllQuestionsByGame, deleteQuestionsByGame } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
-import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, Info, Users, FileQuestion, Shield, Clock, Zap } from 'lucide-react';
 
 
 interface Question {
@@ -525,6 +525,48 @@ const GameQuestions = () => {
             </Button>
           </div>
 
+          {/* Process Steps */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
+                <span className="text-blue-300 font-bold">1</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Đăng nhập</p>
+                <p className="text-xs text-blue-200">Xác thực tài khoản</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
+                <span className="text-blue-300 font-bold">2</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Chọn phần thi</p>
+                <p className="text-xs text-blue-200">Khởi động → VCNV → Tăng tốc → Về đích</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
+                <span className="text-blue-300 font-bold">3</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Nhập câu hỏi</p>
+                <p className="text-xs text-blue-200">Nội dung, đáp án, điểm số</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
+                <span className="text-blue-300 font-bold">4</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Lưu & Host</p>
+                <p className="text-xs text-blue-200">Đi tới phòng chờ</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
           {/* Questions Tabs */}
           <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-6">
             <CardHeader>
@@ -831,6 +873,70 @@ const GameQuestions = () => {
               </div>
             </CardContent>
           </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Info className="h-5 w-5 text-blue-300" />
+                    Hướng dẫn nhanh
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <FileQuestion className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Khởi động</p>
+                      <p className="text-xs text-blue-200">Bắt buộc 4 đáp án A/B/C/D và chọn đáp án đúng</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <Shield className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">VCNV</p>
+                      <p className="text-xs text-blue-200">Nhập 4 hàng ngang đúng số cột và đáp án trung tâm</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Video intro</p>
+                      <p className="text-xs text-blue-200">Đặt đường dẫn public hoặc upload cho từng phần thi</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                    <Clock className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Lưu dữ liệu</p>
+                      <p className="text-xs text-blue-200">Nhấn “Lưu tất cả câu hỏi” để đồng bộ</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-400" />
+                    Cần trợ giúp?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-blue-200 mb-4">
+                    Muốn quay lại phòng chờ để host game?
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-blue-400/50 text-blue-300 hover:bg-blue-500/20"
+                    onClick={() => navigate(`/game/lobby/${code}`)}
+                  >
+                    Về phòng chờ
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
           {/* Save Button (Sticky Footer) */}
           <div className="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-b from-blue-900/60 to-blue-900 backdrop-blur supports-[backdrop-filter]:bg-blue-900/50 border-t border-white/10 mt-8">
