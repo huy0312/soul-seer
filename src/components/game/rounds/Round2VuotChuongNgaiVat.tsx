@@ -7,9 +7,13 @@ import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { getVCNVState, revealHangNgang, awardPoints, getGameById } from '@/services/gameService';
+import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import VCNVBoard from '@/components/game/VCNVBoard';
+import { RoundResultModal } from '@/components/game/RoundResultModal';
+import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 type Question = Database['public']['Tables']['questions']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
@@ -43,6 +47,10 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const [eliminatedPlayers, setEliminatedPlayers] = useState<Set<string>>(new Set());
   const [boardCols, setBoardCols] = useState<number>(8);
   const [boardWords, setBoardWords] = useState<[string, string, string, string]>(['', '', '', '']);
+  const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
+  const [roundEnded, setRoundEnded] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [allPlayersAnswers, setAllPlayersAnswers] = useState<Answer[]>([]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -142,10 +150,89 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     }
   };
 
+  // Check if all players completed the round
+  useEffect(() => {
+    if (roundEnded) return;
+
+    const loadAllAnswers = async () => {
+      const { answers, error } = await getAnswersForRound(gameId, 'vuot_chuong_ngai_vat');
+      if (error || !answers) {
+        console.error('Error loading answers:', error);
+        return;
+      }
+      
+      setAllPlayersAnswers(answers);
+      
+      const playingPlayers = players.filter((p) => !p.is_host);
+      const totalQuestions = questions.length;
+      
+      let allCompleted = true;
+      for (const player of playingPlayers) {
+        const playerAnswers = answers.filter((a) => a.player_id === player.id);
+        if (playerAnswers.length < totalQuestions) {
+          allCompleted = false;
+          break;
+        }
+      }
+      
+      setAllPlayersCompleted(allCompleted);
+    };
+
+    loadAllAnswers();
+
+    // Subscribe to answers changes
+    const questionIds = questions.map((q) => q.id);
+    const channelName = `answers:${gameId}:vcnv:${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'answers',
+          filter: `question_id=in.(${questionIds.join(',')})`,
+        },
+        () => {
+          if (!roundEnded) {
+            loadAllAnswers();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId, questions, players, roundEnded]);
+
+  // When all players completed, end round and show modal
+  useEffect(() => {
+    if (allPlayersCompleted && !roundEnded) {
+      console.log('✅ All players completed Round 2! Ending round...');
+      setRoundEnded(true);
+      
+      setTimeout(() => {
+        setShowResultModal(true);
+      }, 500);
+      
+      toast({
+        title: 'Hoàn thành!',
+        description: 'Tất cả thí sinh đã hoàn thành phần thi. Đang tính điểm...',
+        variant: 'default',
+      });
+    }
+  }, [allPlayersCompleted, roundEnded]);
+
   const handleNext = () => {
     setFirstBuzzerPress(null);
     setAnswer('');
     if (isLastQuestion) {
+      // Check if all players completed before calling onRoundComplete
+      if (allPlayersCompleted) {
+        // Modal will handle onRoundComplete when closed
+        return;
+      }
       onRoundComplete();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -316,6 +403,36 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
           <Scoreboard players={playingPlayers} />
         </div>
       </div>
+
+      {/* Completion Status */}
+      {!allPlayersCompleted && !roundEnded && (
+        <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
+          <AlertTriangle className="h-4 w-4 text-blue-400" />
+          <AlertDescription className="text-blue-200">
+            Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {questions.length * playingPlayers.length} câu trả lời)
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {allPlayersCompleted && !roundEnded && (
+        <Alert className="mt-4 bg-green-500/20 border-green-400 max-w-md mx-auto animate-pulse">
+          <CheckCircle2 className="h-4 w-4 text-green-400" />
+          <AlertDescription className="text-green-200 font-semibold">
+            ✅ Tất cả thí sinh đã hoàn thành! Đang tính điểm...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Round Result Modal */}
+      <RoundResultModal
+        isOpen={showResultModal}
+        players={players}
+        roundName="Phần 2 - Vượt chướng ngại vật"
+        onClose={() => {
+          setShowResultModal(false);
+          onRoundComplete();
+        }}
+      />
     </div>
   );
 };

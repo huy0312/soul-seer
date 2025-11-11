@@ -387,6 +387,7 @@ const GamePlay = () => {
               questions={questions}
               players={playingPlayers}
               currentPlayerId={currentPlayerId}
+              gameId={game.id}
               onSubmitAnswer={(questionId, answer, responseTime) =>
                 handleSubmitAnswer(questionId, answer, responseTime)
               }
@@ -401,6 +402,7 @@ const GamePlay = () => {
               questions={questions}
               players={playingPlayers}
               currentPlayerId={currentPlayerId}
+              gameId={game.id}
               onSubmitAnswer={(questionId, answer, useStar) =>
                 handleSubmitAnswer(questionId, answer, undefined, useStar)
               }

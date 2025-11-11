@@ -181,7 +181,7 @@ const GameLobby = () => {
       // Host navigates to host dashboard, not to intro/play
       // Other players will be automatically redirected via subscription
       setTimeout(() => {
-        navigate(`/game/host/${code}`);
+      navigate(`/game/host/${code}`);
       }, 300);
     } catch (error) {
       toast({

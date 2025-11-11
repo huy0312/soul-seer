@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2, Star, XCircle } from 'lucide-react';
+import { getAnswersForRound } from '@/services/gameService';
+import { supabase } from '@/integrations/supabase/client';
+import { RoundResultModal } from '@/components/game/RoundResultModal';
+import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 type Question = Database['public']['Tables']['questions']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
@@ -15,6 +21,7 @@ interface Round4VeDichProps {
   questions: Question[];
   players: Player[];
   currentPlayerId: string;
+  gameId: string;
   onSubmitAnswer: (questionId: string, answer: string, useStar: boolean) => Promise<void>;
   onNextQuestion: () => void;
   onRoundComplete: () => void;
@@ -24,6 +31,7 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
   questions,
   players,
   currentPlayerId,
+  gameId,
   onSubmitAnswer,
   onNextQuestion,
   onRoundComplete,
@@ -35,6 +43,10 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [answer, setAnswer] = useState('');
   const [useStar, setUseStar] = useState(false);
+  const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
+  const [roundEnded, setRoundEnded] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [allPlayersAnswers, setAllPlayersAnswers] = useState<Answer[]>([]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -60,6 +72,80 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
     setAnswer('');
     setUseStar(false);
   }, [currentQuestionIndex]);
+
+  // Check if all players completed the round
+  useEffect(() => {
+    if (roundEnded || !selectedPackage) return;
+
+    const loadAllAnswers = async () => {
+      const { answers, error } = await getAnswersForRound(gameId, 've_dich');
+      if (error || !answers) {
+        console.error('Error loading answers:', error);
+        return;
+      }
+      
+      setAllPlayersAnswers(answers);
+      
+      const playingPlayers = players.filter((p) => !p.is_host);
+      // For Round 4, each player answers one question (their selected package)
+      // So we check if all players have answered
+      let allCompleted = true;
+      for (const player of playingPlayers) {
+        const playerAnswers = answers.filter((a) => a.player_id === player.id);
+        if (playerAnswers.length === 0) {
+          allCompleted = false;
+          break;
+        }
+      }
+      
+      setAllPlayersCompleted(allCompleted);
+    };
+
+    loadAllAnswers();
+
+    // Subscribe to answers changes
+    const questionIds = questions.map((q) => q.id);
+    const channelName = `answers:${gameId}:vedich:${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'answers',
+          filter: `question_id=in.(${questionIds.join(',')})`,
+        },
+        () => {
+          if (!roundEnded) {
+            loadAllAnswers();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId, questions, players, roundEnded, selectedPackage]);
+
+  // When all players completed, end round and show modal
+  useEffect(() => {
+    if (allPlayersCompleted && !roundEnded && selectedPackage) {
+      console.log('✅ All players completed Round 4! Ending round...');
+      setRoundEnded(true);
+      
+      setTimeout(() => {
+        setShowResultModal(true);
+      }, 500);
+      
+      toast({
+        title: 'Hoàn thành!',
+        description: 'Tất cả thí sinh đã hoàn thành phần thi. Đang tính điểm...',
+        variant: 'default',
+      });
+    }
+  }, [allPlayersCompleted, roundEnded, selectedPackage]);
 
   const handleSelectPackage = (packagePoints: number) => {
     setSelectedPackage(packagePoints);
@@ -92,12 +178,19 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
 
   const handleNext = () => {
     if (isLastQuestion) {
+      // Check if all players completed before calling onRoundComplete
+      if (allPlayersCompleted) {
+        // Modal will handle onRoundComplete when closed
+        return;
+      }
       onRoundComplete();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
       onNextQuestion();
     }
   };
+
+  const playingPlayers = players.filter((p) => !p.is_host);
 
   if (!currentQuestion) {
     return (
@@ -302,6 +395,36 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
           <Scoreboard players={playingPlayers} />
         </div>
       </div>
+
+      {/* Completion Status */}
+      {selectedPackage && !allPlayersCompleted && !roundEnded && (
+        <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
+          <AlertTriangle className="h-4 w-4 text-blue-400" />
+          <AlertDescription className="text-blue-200">
+            Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {playingPlayers.length} câu trả lời)
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {selectedPackage && allPlayersCompleted && !roundEnded && (
+        <Alert className="mt-4 bg-green-500/20 border-green-400 max-w-md mx-auto animate-pulse">
+          <CheckCircle2 className="h-4 w-4 text-green-400" />
+          <AlertDescription className="text-green-200 font-semibold">
+            ✅ Tất cả thí sinh đã hoàn thành! Đang tính điểm...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Round Result Modal */}
+      <RoundResultModal
+        isOpen={showResultModal}
+        players={players}
+        roundName="Phần 4 - Về đích"
+        onClose={() => {
+          setShowResultModal(false);
+          onRoundComplete();
+        }}
+      />
     </div>
   );
 };
