@@ -6,10 +6,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { CheckCircle2 } from 'lucide-react';
 import { getAnswersForRound, createVCNVTimerChannel, emitVCNVSignal, createQuestions } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
-import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
 import { playCountdownSound } from '@/utils/audio';
 
 type Question = Database['public']['Tables']['questions']['Row'];
@@ -38,15 +35,12 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const [playerAnswers, setPlayerAnswers] = useState<Map<string, Answer>>(new Map());
   const [submitting, setSubmitting] = useState(false);
   const [answer, setAnswer] = useState('');
-  const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
-  const [roundEnded, setRoundEnded] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
   const [allPlayersAnswers, setAllPlayersAnswers] = useState<Answer[]>([]);
   const [timerActive, setTimerActive] = useState(false);
   const [remaining, setRemaining] = useState<number>(0);
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
-  const durationRef = useRef<number>(10);
+  const durationRef = useRef<number>(15);
   const timerStartSignatureRef = useRef<number | null>(null);
   const [signalSent, setSignalSent] = useState(false);
 
@@ -174,9 +168,10 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     }
   };
 
-  // Check if all players completed the round
+  // VCNV: Just track answers for display, don't auto-end round
+  // Host will manually control when to move to next question/round
   useEffect(() => {
-    if (roundEnded || !placeholderQuestionId) return;
+    if (!placeholderQuestionId) return;
 
     const loadAllAnswers = async () => {
       const { answers, error } = await getAnswersForRound(gameId, 'vuot_chuong_ngai_vat');
@@ -186,20 +181,6 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       }
       
       setAllPlayersAnswers(answers);
-      
-      const playingPlayers = players.filter((p) => !p.is_host);
-      
-      // For VCNV, we only need one answer per player (the placeholder question)
-      let allCompleted = true;
-      for (const player of playingPlayers) {
-        const playerAnswers = answers.filter((a) => a.player_id === player.id && a.question_id === placeholderQuestionId);
-        if (playerAnswers.length === 0) {
-          allCompleted = false;
-          break;
-        }
-      }
-      
-      setAllPlayersCompleted(allCompleted);
     };
 
     loadAllAnswers();
@@ -217,9 +198,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
           filter: `question_id=eq.${placeholderQuestionId}`,
         },
         () => {
-          if (!roundEnded) {
-            loadAllAnswers();
-          }
+          loadAllAnswers();
         }
       )
       .subscribe();
@@ -227,25 +206,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [gameId, placeholderQuestionId, players, roundEnded]);
-
-  // When all players completed, end round and show modal
-  useEffect(() => {
-    if (allPlayersCompleted && !roundEnded) {
-      console.log('✅ All players completed Round 2! Ending round...');
-      setRoundEnded(true);
-      
-      setTimeout(() => {
-        setShowResultModal(true);
-      }, 500);
-      
-      toast({
-        title: 'Hoàn thành!',
-        description: 'Tất cả thí sinh đã hoàn thành phần thi. Đang tính điểm...',
-        variant: 'default',
-      });
-    }
-  }, [allPlayersCompleted, roundEnded]);
+  }, [gameId, placeholderQuestionId]);
 
   if (!placeholderQuestionId) {
     return (
@@ -263,7 +224,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       <div className="text-center mb-6">
         <h2 className="text-3xl font-bold mb-2">Phần 2 - Vượt chướng ngại vật</h2>
         <p className="text-blue-200">
-          Slide tìm chữ sẽ hiển thị trên bảng. Bạn có 10 giây để nhập đáp án. Thời gian làm bài sẽ được ghi lại.
+          Slide tìm chữ sẽ hiển thị trên bảng. Bạn có 15 giây để nhập đáp án. Thời gian làm bài sẽ được ghi lại.
         </p>
         <div className="mt-5 inline-flex items-center gap-4 px-6 py-3 rounded-xl bg-blue-500/30 border border-blue-400 shadow-lg">
           <span className="text-blue-100 text-lg">Thời gian còn lại:</span>
@@ -373,35 +334,6 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         </div>
       </div>
 
-      {/* Completion Status */}
-      {!allPlayersCompleted && !roundEnded && (
-        <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
-          <AlertTriangle className="h-4 w-4 text-blue-400" />
-          <AlertDescription className="text-blue-200">
-            Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {playingPlayers.length} câu trả lời)
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {allPlayersCompleted && !roundEnded && (
-        <Alert className="mt-4 bg-green-500/20 border-green-400 max-w-md mx-auto animate-pulse">
-          <CheckCircle2 className="h-4 w-4 text-green-400" />
-          <AlertDescription className="text-green-200 font-semibold">
-            ✅ Tất cả thí sinh đã hoàn thành! Đang tính điểm...
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Round Result Modal */}
-      <RoundResultModal
-        isOpen={showResultModal}
-        players={players}
-        roundName="Phần 2 - Vượt chướng ngại vật"
-        onClose={() => {
-          setShowResultModal(false);
-          onRoundComplete();
-        }}
-      />
     </div>
   );
 };

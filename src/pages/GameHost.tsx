@@ -491,7 +491,7 @@ const GameHost = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>Điều khiển phần 2 - Vượt chướng ngại vật</span>
-                      <span className="text-sm text-blue-200">Bắt đầu đếm ngược 10s và chấm điểm thủ công</span>
+                      <span className="text-sm text-blue-200">Bắt đầu đếm ngược 15s và chấm điểm thủ công</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -507,18 +507,18 @@ const GameHost = () => {
                           setVCNVSignal(null);
                           setVCNVAnswers([]);
                           try {
-                            await startVCNVTimer(game.id, 10);
+                            await startVCNVTimer(game.id, 15);
                           } catch (error) {
                             console.error('Unable to start VCNV timer', error);
                             toast({
                               title: 'Lỗi',
-                              description: 'Không thể bắt đầu đếm ngược 10s.',
+                              description: 'Không thể bắt đầu đếm ngược 15s.',
                               variant: 'destructive',
                             });
                           }
                         }}
                       >
-                        Bắt đầu 10s
+                        Bắt đầu 15s
                       </Button>
                       <Button
                         variant="outline"
@@ -574,7 +574,7 @@ const GameHost = () => {
                       <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                         {vcnvAnswers.length === 0 ? (
                           <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-blue-200 text-sm">
-                            Chưa có đáp án nào. Bấm bắt đầu 10s để thu thập đáp án mới.
+                            Chưa có đáp án nào. Bấm bắt đầu 15s để thu thập đáp án mới.
                           </div>
                         ) : (
                           vcnvAnswers.map((answer) => (

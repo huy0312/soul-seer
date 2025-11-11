@@ -71,10 +71,13 @@ const GamePlay = () => {
   const [loading, setLoading] = useState(true);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [showVideoIntro, setShowVideoIntro] = useState(false);
+  // videoIntroCompleted tracks which rounds have shown intro in THIS session
+  // It should be empty when first entering a round, so intro always shows
   const [videoIntroCompleted, setVideoIntroCompleted] = useState<Set<RoundType>>(new Set());
   const [currentIntroVideo, setCurrentIntroVideo] = useState<string | null>(null);
   const videoIntroCheckedRef = useRef<Set<RoundType>>(new Set());
   const prevRoundRef = useRef<RoundType | null>(null);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!code) {
@@ -134,18 +137,37 @@ const GamePlay = () => {
         // Load questions for current round will be handled by useEffect below
 
         // Reset video intro state when loading game
-        // Don't clear videoIntroCompleted here - it should persist across reloads
-        // Only clear it when round actually changes
         setShowVideoIntro(false);
         setCurrentIntroVideo(null);
         videoIntroCheckedRef.current.clear();
+        
+        // On first load, ensure videoIntroCompleted is checked fresh
+        // This ensures intro always shows when entering a round for the first time
+        if (!hasInitializedRef.current) {
+          hasInitializedRef.current = true;
+          // Don't clear videoIntroCompleted here - it tracks session state
+          // But we'll check it properly below
+        }
 
         // Check if we need to show video intro for current round
         // Always show intro if round hasn't been completed yet
         if (gameData.current_round) {
           const currentRound = gameData.current_round as RoundType;
+          
+          // Check if this round was already completed in this session
+          // If not, we need to show intro
           const hasCompleted = videoIntroCompleted.has(currentRound);
           
+          console.log('=== Checking intro for round (initial load) ===', {
+            round: currentRound,
+            hasCompleted,
+            videoIntroCompleted: Array.from(videoIntroCompleted),
+            gameStatus: gameData.status,
+            hasInitialized: hasInitializedRef.current,
+          });
+          
+          // Always show intro for new rounds (not completed yet)
+          // On first load, videoIntroCompleted should be empty, so hasCompleted = false
           if (!hasCompleted) {
             let introVideos: Record<string, string> | null = null;
             
@@ -178,10 +200,20 @@ const GamePlay = () => {
             } else {
               setCurrentIntroVideo(null);
             }
+            // Set showVideoIntro immediately
             setShowVideoIntro(true);
             videoIntroCheckedRef.current.add(currentRound);
+            
+            console.log('✅ Intro state set (initial load):', {
+              showVideoIntro: true,
+              currentIntroVideo: hasVideo ? videoUrl : null,
+              round: currentRound,
+            });
           } else {
-            console.log('Round intro already completed, skipping:', currentRound);
+            console.log('⚠️ Round intro already completed, skipping:', currentRound);
+            // If already completed, ensure we don't show intro
+            setShowVideoIntro(false);
+            setCurrentIntroVideo(null);
           }
         } else {
           console.log('❌ No current round:', {
@@ -403,7 +435,22 @@ const GamePlay = () => {
   // For other rounds, we need questions
   const needsQuestions = game?.current_round && game.current_round !== 'vuot_chuong_ngai_vat';
   
-  if (!game || !currentPlayerId || (needsQuestions && questions.length === 0)) {
+  // If we should show intro, don't block on questions loading
+  const shouldShowIntroNow = showVideoIntro && game?.current_round && !videoIntroCompleted.has(game.current_round as RoundType);
+  
+  if (!game || !currentPlayerId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Đang tải game...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If we need questions but don't have them yet, and we're not showing intro, show loading
+  if (needsQuestions && questions.length === 0 && !shouldShowIntroNow) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
         <div className="text-center">
@@ -436,9 +483,20 @@ const GamePlay = () => {
   // 1. showVideoIntro is true AND
   // 2. We have a current round AND
   // 3. The round hasn't been completed yet
-  const shouldShowIntro = showVideoIntro && game?.current_round && !videoIntroCompleted.has(game.current_round as RoundType);
+  const currentRound = game?.current_round as RoundType | null;
+  const hasCompleted = currentRound ? videoIntroCompleted.has(currentRound) : false;
+  const shouldShowIntro = showVideoIntro && currentRound && !hasCompleted;
   
-  if (shouldShowIntro && game?.current_round) {
+  console.log('=== Render check ===', {
+    showVideoIntro,
+    currentRound,
+    hasCompleted,
+    shouldShowIntro,
+    currentIntroVideo,
+    videoIntroCompleted: Array.from(videoIntroCompleted),
+  });
+  
+  if (shouldShowIntro && currentRound) {
     const handleIntroComplete = () => {
       console.log('Intro completed for round:', game.current_round);
       const currentRound = game.current_round as RoundType;
