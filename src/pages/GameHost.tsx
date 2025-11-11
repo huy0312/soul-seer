@@ -210,9 +210,13 @@ const GameHost = () => {
         const { error } = await nextRound(game.id, game.current_round);
         if (error) throw error;
 
-        const nextRoundName = roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' 
+        const nextRoundKey = roundOrder[currentIndex + 1];
+        // Optimistic UI update so the step indicator switches immediately
+        setGame((prev) => (prev ? { ...prev, current_round: nextRoundKey } as Game : prev));
+
+        const nextRoundName = nextRoundKey === 'vuot_chuong_ngai_vat' 
           ? 'Vượt chướng ngại vật' 
-          : roundOrder[currentIndex + 1] === 'tang_toc' 
+          : nextRoundKey === 'tang_toc' 
           ? 'Tăng tốc' 
           : 'Về đích';
 
