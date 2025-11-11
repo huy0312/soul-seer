@@ -524,6 +524,20 @@ const GameQuestions = () => {
               Quay lại
             </Button>
           </div>
+          {/* Prominent badge/header like create game */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center gap-3 mb-3 bg-white/10 backdrop-blur-lg rounded-full px-8 py-4 border border-white/20 shadow-lg">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 border border-blue-400/40">
+                🎯
+              </span>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 bg-clip-text text-transparent">
+                Soạn câu hỏi cho 4 phần thi
+              </h2>
+            </div>
+            <p className="text-blue-200 max-w-2xl mx-auto">
+              Khởi động, Vượt chướng ngại vật, Tăng tốc, Về đích. Nhập nội dung, đáp án, điểm số và video intro cho từng phần.
+            </p>
+          </div>
 
           {/* Process Steps */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
