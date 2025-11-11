@@ -33,6 +33,7 @@ const GameLobby = () => {
   const [checkingQuestions, setCheckingQuestions] = useState(true);
   const [isHost, setIsHost] = useState(false);
   const [prevRound, setPrevRound] = useState<string | null>(null);
+  const [navigated, setNavigated] = useState(false);
 
   useEffect(() => {
     if (!code) {
@@ -92,18 +93,20 @@ const GameLobby = () => {
           console.log('Game status changed:', updatedGame.status);
           setGame(updatedGame);
           // Navigate non-hosts to intro whenever a new round begins while in lobby
-          if (updatedGame.status === 'playing') {
+          if (updatedGame.status === 'playing' && !navigated) {
             const round = (updatedGame as any).current_round;
             if (!isHost) {
               // If round changed compared to the last seen value, go to intro
               if (round && round !== prevRound) {
                 setPrevRound(round);
+                setNavigated(true);
                 setTimeout(() => {
                   navigate(`/game/intro/${code}`);
                 }, 100);
               }
             } else {
               // Host should be on host dashboard
+              setNavigated(true);
               setTimeout(() => {
                 navigate(`/game/host/${code}`);
               }, 100);

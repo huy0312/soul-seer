@@ -233,14 +233,17 @@ const GamePlay = () => {
     if (!game?.id) return;
     const unsubscribe = createRoundEventChannel(game.id, (evt) => {
       if (evt.type === 'round_finished') {
-        // On any round finished, send players back to lobby to wait for host
-        navigate(`/game/lobby/${code}`);
+        // Only navigate to lobby if the finished round equals the round we're currently in.
+        // This prevents bouncing back to lobby due to late events from a previous round.
+        if (evt.round && game?.current_round === evt.round) {
+          navigate(`/game/lobby/${code}`);
+        }
       }
     });
     return () => {
       unsubscribe();
     };
-  }, [game?.id, code, navigate]);
+  }, [game?.id, game?.current_round, code, navigate]);
   // Function to load questions for a round - memoized with useCallback
   const loadQuestionsForRound = useCallback(async (gameId: string, round: RoundType): Promise<void> => {
     const { questions: questionsData, error: questionsError } = await getQuestions(gameId, round);
@@ -337,10 +340,15 @@ const GamePlay = () => {
     );
   }
 
-  if (!game || !currentPlayerId || questions.length === 0) {
+  // For VCNV round, questions array can be empty (no DB questions needed)
+  // For other rounds, we need questions
+  const needsQuestions = game?.current_round && game.current_round !== 'vuot_chuong_ngai_vat';
+  
+  if (!game || !currentPlayerId || (needsQuestions && questions.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
         <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Đang tải game...</p>
         </div>
       </div>

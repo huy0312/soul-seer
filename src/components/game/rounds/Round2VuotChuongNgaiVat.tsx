@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Buzzer } from '@/components/game/Buzzer';
-import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound, createVCNVTimerChannel, emitVCNVSignal } from '@/services/gameService';
+import { CheckCircle2 } from 'lucide-react';
+import { getAnswersForRound, createVCNVTimerChannel, emitVCNVSignal, createQuestions } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
-import VCNVBoard from '@/components/game/VCNVBoard';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,15 +34,9 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   onNextQuestion,
   onRoundComplete,
 }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [firstBuzzerPress, setFirstBuzzerPress] = useState<string | null>(null);
   const [playerAnswers, setPlayerAnswers] = useState<Map<string, Answer>>(new Map());
   const [submitting, setSubmitting] = useState(false);
   const [answer, setAnswer] = useState('');
-  const [revealed, setRevealed] = useState<Set<number>>(new Set());
-  const [eliminatedPlayers, setEliminatedPlayers] = useState<Set<string>>(new Set());
-  const [boardCols, setBoardCols] = useState<number>(8);
-  const [boardWords, setBoardWords] = useState<[string, string, string, string]>(['', '', '', '']);
   const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -58,48 +48,56 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const durationRef = useRef<number>(10);
   const [signalSent, setSignalSent] = useState(false);
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
-  const isWordPuzzle = currentQuestion?.question_type === 'hang_ngang';
-  const isCentral = currentQuestion?.question_type === 'chuong_ngai_vat';
+  // VCNV mode: no DB questions needed, just timer + input
+  // We'll use a placeholder question ID for answer submission
+  const [placeholderQuestionId, setPlaceholderQuestionId] = useState<string | null>(null);
+  const currentAnswer = placeholderQuestionId ? playerAnswers.get(placeholderQuestionId) : null;
 
-  // Load and subscribe VCNV reveal state
+  // Create placeholder question for VCNV round (if not exists)
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    (async () => {
-      // Load board config from games.vcnv_config
-      try {
-        const { game } = await getGameById(gameId);
-        const cfg: any = (game as any)?.vcnv_config;
-        if (cfg) {
-          if (cfg.cols) setBoardCols(Number(cfg.cols) || 8);
-          if (Array.isArray(cfg.words) && cfg.words.length === 4) {
-            setBoardWords([cfg.words[0] || '', cfg.words[1] || '', cfg.words[2] || '', cfg.words[3] || '']);
-          }
+    const createPlaceholderQuestion = async () => {
+      // Check if placeholder question already exists
+      const { data: existingQuestions } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('game_id', gameId)
+        .eq('round', 'vuot_chuong_ngai_vat')
+        .limit(1);
+
+      if (existingQuestions && existingQuestions.length > 0) {
+        setPlaceholderQuestionId(existingQuestions[0].id);
+        return;
+      }
+
+      // Create placeholder question
+      const { error } = await createQuestions(gameId, [
+        {
+          round: 'vuot_chuong_ngai_vat',
+          question_text: 'Câu hỏi Vượt chướng ngại vật (slide sẽ hiển thị trên bảng)',
+          correct_answer: '', // No correct answer needed, host will score manually
+          points: 0, // Host will award points manually
+          order_index: 0,
+        },
+      ]);
+
+      if (!error) {
+        // Get the created question
+        const { data: newQuestions } = await supabase
+          .from('questions')
+          .select('id')
+          .eq('game_id', gameId)
+          .eq('round', 'vuot_chuong_ngai_vat')
+          .limit(1);
+
+        if (newQuestions && newQuestions.length > 0) {
+          setPlaceholderQuestionId(newQuestions[0].id);
         }
-      } catch {}
-
-      const { state } = await getVCNVState(gameId);
-      const initial = new Set<number>();
-      state.forEach((s) => s.is_revealed && initial.add(s.hang_ngang_index));
-      setRevealed(initial);
-    })();
-
-    channel = supabase
-      .channel(`vcnv:${gameId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vcnv_state', filter: `game_id=eq.${gameId}` }, (payload) => {
-        const row: any = payload.new;
-        if (row?.is_revealed) {
-          setRevealed((prev) => new Set(prev).add(row.hang_ngang_index));
-        }
-      })
-      .subscribe();
-
-    return () => {
-      if (channel) supabase.removeChannel(channel);
+      }
     };
+
+    createPlaceholderQuestion();
   }, [gameId]);
+
 
   // New mode: listen to host timer broadcast, run local countdown
   useEffect(() => {
@@ -143,10 +141,8 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     };
   }, [gameId]);
 
-  const handleBuzzerPress = () => {};
-
   const handleSubmit = async () => {
-    if (!currentQuestion || submitting || !answer.trim()) return;
+    if (!placeholderQuestionId || submitting || !answer.trim()) return;
 
     // New mode: allow any player to submit during timer window
     if (!timerActive || remaining <= 0) return;
@@ -156,9 +152,9 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       // Compute response time in seconds since timer start
       const elapsedSec =
         startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : undefined;
-      const res = await onSubmitAnswer(currentQuestion.id, answer, elapsedSec as any);
+      const res = await onSubmitAnswer(placeholderQuestionId, answer, elapsedSec as any);
       if (res) {
-        setPlayerAnswers((prev) => new Map(prev.set(currentQuestion.id, res)));
+        setPlayerAnswers((prev) => new Map(prev.set(placeholderQuestionId, res)));
         // No correctness/scoring in this mode; host will award points manually
       }
     } catch (error) {
@@ -170,7 +166,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
 
   // Check if all players completed the round
   useEffect(() => {
-    if (roundEnded) return;
+    if (roundEnded || !placeholderQuestionId) return;
 
     const loadAllAnswers = async () => {
       const { answers, error } = await getAnswersForRound(gameId, 'vuot_chuong_ngai_vat');
@@ -182,12 +178,12 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       setAllPlayersAnswers(answers);
       
       const playingPlayers = players.filter((p) => !p.is_host);
-      const totalQuestions = questions.length;
       
+      // For VCNV, we only need one answer per player (the placeholder question)
       let allCompleted = true;
       for (const player of playingPlayers) {
-        const playerAnswers = answers.filter((a) => a.player_id === player.id);
-        if (playerAnswers.length < totalQuestions) {
+        const playerAnswers = answers.filter((a) => a.player_id === player.id && a.question_id === placeholderQuestionId);
+        if (playerAnswers.length === 0) {
           allCompleted = false;
           break;
         }
@@ -199,7 +195,6 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     loadAllAnswers();
 
     // Subscribe to answers changes
-    const questionIds = questions.map((q) => q.id);
     const channelName = `answers:${gameId}:vcnv:${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -209,7 +204,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
           event: '*',
           schema: 'public',
           table: 'answers',
-          filter: `question_id=in.(${questionIds.join(',')})`,
+          filter: `question_id=eq.${placeholderQuestionId}`,
         },
         () => {
           if (!roundEnded) {
@@ -222,7 +217,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [gameId, questions, players, roundEnded]);
+  }, [gameId, placeholderQuestionId, players, roundEnded]);
 
   // When all players completed, end round and show modal
   useEffect(() => {
@@ -242,26 +237,11 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     }
   }, [allPlayersCompleted, roundEnded]);
 
-  const handleNext = () => {
-    setFirstBuzzerPress(null);
-    setAnswer('');
-    if (isLastQuestion) {
-      // Check if all players completed before calling onRoundComplete
-      if (allPlayersCompleted) {
-        // Modal will handle onRoundComplete when closed
-        return;
-      }
-      onRoundComplete();
-    } else {
-      setCurrentQuestionIndex((prev) => prev + 1);
-      onNextQuestion();
-    }
-  };
-
-  if (!currentQuestion) {
+  if (!placeholderQuestionId) {
     return (
       <div className="text-center p-8">
-        <p className="text-xl text-blue-200">Không có câu hỏi nào trong phần này</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+        <p className="text-xl text-blue-200">Đang tải...</p>
       </div>
     );
   }
@@ -283,48 +263,16 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         </div>
       </div>
 
-      {/* Reveal Board */}
-      <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-        <CardContent className="p-4">
-          <VCNVBoard cols={boardCols} words={boardWords} revealed={revealed} />
-          {eliminatedPlayers.has(currentPlayerId) && (
-            <p className="mt-3 text-center text-red-300 text-sm font-semibold">Bạn đã bị loại khỏi phần thi này</p>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Question Section */}
+        {/* Answer Input Section */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="bg-white/10 backdrop-blur-lg border-white/20">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl">Câu hỏi {currentQuestionIndex + 1}</CardTitle>
-                <Badge variant="outline" className="bg-blue-500/20 text-blue-200 border-blue-300">
-                  {currentQuestion.points} điểm
-                </Badge>
-              </div>
+              <CardTitle className="text-2xl">Nhập đáp án</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {isWordPuzzle ? (
-                <WordPuzzle
-                  word={currentQuestion.correct_answer}
-                  hint={currentQuestion.hint || undefined}
-                  onSolve={(solvedAnswer) => {
-                    setAnswer(solvedAnswer);
-                    if (firstBuzzerPress === currentPlayerId) {
-                      handleSubmit();
-                    }
-                  }}
-                />
-              ) : (
-                <div className="p-6 bg-white/5 rounded-lg">
-                  <p className="text-xl font-medium text-white">{currentQuestion.question_text}</p>
-                </div>
-              )}
-
               {/* Timer-based answer input */}
-              {!currentAnswer && !eliminatedPlayers.has(currentPlayerId) && (
+              {!currentAnswer && (
                 <div className="space-y-4">
                   <div className="space-y-2 p-4 bg-white/5 rounded-lg border border-white/10">
                     <input
@@ -385,50 +333,26 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
               )}
 
               {currentAnswer && (
-                <div
-                  className={`p-4 rounded-lg border-2 ${
-                    currentAnswer.is_correct
-                      ? 'bg-green-500/20 border-green-400'
-                      : 'bg-red-500/20 border-red-400'
-                  }`}
-                >
+                <div className="p-4 rounded-lg border-2 bg-blue-500/20 border-blue-400">
                   <div className="flex items-center gap-2 mb-2">
-                    {currentAnswer.is_correct ? (
-                      <CheckCircle2 className="h-6 w-6 text-green-400" />
-                    ) : null}
-                    <span
-                      className={`font-semibold ${
-                        currentAnswer.is_correct ? 'text-green-300' : 'text-red-300'
-                      }`}
-                    >
-                      {currentAnswer.is_correct ? 'Đúng!' : 'Sai!'}
+                    <CheckCircle2 className="h-6 w-6 text-blue-400" />
+                    <span className="font-semibold text-blue-300">
+                      Đã gửi câu trả lời!
                     </span>
                   </div>
                   <p className="text-sm text-blue-200 mb-1">
                     <strong>Câu trả lời:</strong> {currentAnswer.answer_text}
                   </p>
-                  <p className="text-sm text-blue-200">
-                    <strong>Đáp án đúng:</strong> {currentQuestion.correct_answer}
-                  </p>
-                  {currentAnswer.points_earned > 0 && (
-                    <p className="text-lg font-bold text-green-300 mt-2">
-                      +{currentAnswer.points_earned} điểm
+                  {currentAnswer.response_time !== null && (
+                    <p className="text-sm text-blue-200">
+                      <strong>Thời gian trả lời:</strong> {currentAnswer.response_time}s
                     </p>
                   )}
+                  <p className="text-xs text-blue-200 mt-2">
+                    Người tổ chức sẽ chấm điểm và công bố kết quả.
+                  </p>
                 </div>
               )}
-
-              <div className="flex justify-between items-center pt-4">
-                <span className="text-blue-200">
-                  Câu {currentQuestionIndex + 1} / {questions.length}
-                </span>
-                {currentAnswer && (
-                  <Button onClick={handleNext} size="lg">
-                    {isLastQuestion ? 'Kết thúc phần 2' : 'Câu tiếp theo'}
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -444,7 +368,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         <Alert className="mt-4 bg-blue-500/20 border-blue-400 max-w-md mx-auto">
           <AlertTriangle className="h-4 w-4 text-blue-400" />
           <AlertDescription className="text-blue-200">
-            Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {questions.length * playingPlayers.length} câu trả lời)
+            Đang chờ tất cả thí sinh hoàn thành phần thi... ({allPlayersAnswers.length} / {playingPlayers.length} câu trả lời)
           </AlertDescription>
         </Alert>
       )}
