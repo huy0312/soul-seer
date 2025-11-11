@@ -16,6 +16,7 @@ import {
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
+import { createRoundEventChannel } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import type { RoundType } from '@/services/gameService';
@@ -226,6 +227,19 @@ const GamePlay = () => {
     };
   }, [code, navigate]);
 
+  // Listen for round finished broadcast: send players back to lobby to wait for host
+  useEffect(() => {
+    if (!game?.id) return;
+    const unsubscribe = createRoundEventChannel(game.id, (evt) => {
+      if (evt.type === 'round_finished' && evt.round === 'khoi_dong') {
+        // Players return to lobby to wait for round 2
+        navigate(`/game/lobby/${code}`);
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [game?.id, code, navigate]);
   // Function to load questions for a round - memoized with useCallback
   const loadQuestionsForRound = useCallback(async (gameId: string, round: RoundType): Promise<void> => {
     const { questions: questionsData, error: questionsError } = await getQuestions(gameId, round);

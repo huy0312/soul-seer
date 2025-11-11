@@ -724,6 +724,89 @@ export function subscribeToPlayers(
   };
 }
 
+// Generic round event channel (broadcast)
+export function createRoundEventChannel(
+  gameId: string,
+  onEvent: (event: { type: 'round_finished'; round: RoundType }) => void
+): () => void {
+  const channelName = `round_evt:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'round:finished' }, (payload) => {
+      const data = (payload as any)?.payload || {};
+      if (data?.round) {
+        onEvent({ type: 'round_finished', round: data.round as RoundType });
+      }
+    })
+    .subscribe((status) => {
+      console.log('Round event channel status:', status);
+    });
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function emitRoundFinished(gameId: string, round: RoundType): Promise<void> {
+  const channelName = `round_evt:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'round:finished',
+    payload: { round },
+  });
+  supabase.removeChannel(channel);
+}
+
+// Realtime timer control for VCNV using broadcast channel (no schema changes)
+export function createVCNVTimerChannel(
+  gameId: string,
+  onEvent: (event: { type: 'start' | 'stop'; payload?: any }) => void
+): () => void {
+  const channelName = `vcnv_timer:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'timer:start' }, (payload) => {
+      onEvent({ type: 'start', payload });
+    })
+    .on('broadcast', { event: 'timer:stop' }, (payload) => {
+      onEvent({ type: 'stop', payload });
+    })
+    .subscribe((status) => {
+      console.log('VCNV timer channel status:', status);
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function startVCNVTimer(gameId: string, durationSec: number = 10): Promise<void> {
+  const channelName = `vcnv_timer:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  const startedAt = Date.now();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:start',
+    payload: { durationSec, startedAt },
+  });
+  // Do not keep channel open here; host UI will have its own listener
+  supabase.removeChannel(channel);
+}
+
+export async function stopVCNVTimer(gameId: string): Promise<void> {
+  const channelName = `vcnv_timer:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:stop',
+    payload: {},
+  });
+  supabase.removeChannel(channel);
+}
+
 export async function getVCNVState(gameId: string): Promise<{ state: { hang_ngang_index: number; is_revealed: boolean }[]; error: Error | null }> {
   try {
     const { data, error } = await supabase

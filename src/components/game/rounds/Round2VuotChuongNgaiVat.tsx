@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound } from '@/services/gameService';
+import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound, createVCNVTimerChannel } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import VCNVBoard from '@/components/game/VCNVBoard';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -51,6 +51,11 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [allPlayersAnswers, setAllPlayersAnswers] = useState<Answer[]>([]);
+  const [timerActive, setTimerActive] = useState(false);
+  const [remaining, setRemaining] = useState<number>(0);
+  const timerRef = useRef<number | null>(null);
+  const startedAtRef = useRef<number | null>(null);
+  const durationRef = useRef<number>(10);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -95,53 +100,65 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     };
   }, [gameId]);
 
-  const handleBuzzerPress = (playerId: string, playerName: string) => {
-    if (!firstBuzzerPress) {
-      setFirstBuzzerPress(playerId);
-    }
-  };
+  // New mode: listen to host timer broadcast, run local countdown
+  useEffect(() => {
+    const unsubscribe = createVCNVTimerChannel(gameId, (evt) => {
+      if (evt.type === 'start') {
+        const { durationSec, startedAt } = evt.payload || {};
+        durationRef.current = Number(durationSec) || 10;
+        startedAtRef.current = typeof startedAt === 'number' ? startedAt : Date.now();
+        const endAt = startedAtRef.current + durationRef.current * 1000;
+        setTimerActive(true);
+        const tick = () => {
+          const now = Date.now();
+          const remainMs = Math.max(0, endAt - now);
+          setRemaining(Math.ceil(remainMs / 1000));
+          if (remainMs <= 0) {
+            setTimerActive(false);
+            if (timerRef.current) {
+              window.clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+          }
+        };
+        tick();
+        if (timerRef.current) window.clearInterval(timerRef.current);
+        timerRef.current = window.setInterval(tick, 200);
+      } else if (evt.type === 'stop') {
+        setTimerActive(false);
+        setRemaining(0);
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+    });
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      unsubscribe();
+    };
+  }, [gameId]);
+
+  const handleBuzzerPress = () => {};
 
   const handleSubmit = async () => {
     if (!currentQuestion || submitting || !answer.trim()) return;
 
-    // Only the first buzzer presser can answer
-    if (firstBuzzerPress !== currentPlayerId) {
-      return;
-    }
-
-    // If player eliminated (wrong central guess earlier), block
-    if (eliminatedPlayers.has(currentPlayerId)) return;
+    // New mode: allow any player to submit during timer window
+    if (!timerActive || remaining <= 0) return;
 
     setSubmitting(true);
     try {
-      const res = await onSubmitAnswer(currentQuestion.id, answer);
+      // Compute response time in seconds since timer start
+      const elapsedSec =
+        startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : undefined;
+      const res = await onSubmitAnswer(currentQuestion.id, answer, elapsedSec as any);
       if (res) {
         setPlayerAnswers((prev) => new Map(prev.set(currentQuestion.id, res)));
-        const correct = res.is_correct;
-        if (correct) {
-          if (isWordPuzzle) {
-            // +10 and reveal corresponding hang ngang index (0-3 expected)
-            const idx = Math.min(currentQuestionIndex, 3);
-            await revealHangNgang(gameId, idx);
-            // If backend didn't award, ensure +10
-            if (!res.points_earned || res.points_earned === 0) {
-              await awardPoints(currentPlayerId, 10);
-            }
-          } else if (isCentral) {
-            // Calculate bonus based on number of revealed rows
-            const opened = Math.min(revealed.size, 3);
-            const bonusMap = [80, 60, 40, 20];
-            const bonus = bonusMap[opened];
-            if (!res.points_earned || res.points_earned === 0) {
-              await awardPoints(currentPlayerId, bonus);
-            }
-            // End round immediately when central is solved
-            onRoundComplete();
-          }
-        } else if (isCentral) {
-          // Eliminate on wrong central guess
-          setEliminatedPlayers((prev) => new Set(prev).add(currentPlayerId));
-        }
+        // No correctness/scoring in this mode; host will award points manually
       }
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -254,7 +271,13 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-3xl font-bold mb-2">Phần 2 - Vượt chướng ngại vật</h2>
-        <p className="text-blue-200">Bấm chuông nhanh để giành quyền trả lời. Hàng ngang đúng sẽ mở gợi ý (+10 điểm). Đoán đúng chướng ngại vật: +80/60/40/20.</p>
+        <p className="text-blue-200">
+          Slide tìm chữ sẽ hiển thị trên bảng. Bạn có 10 giây để nhập đáp án. Thời gian làm bài sẽ được ghi lại.
+        </p>
+        <div className="mt-3 inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-400">
+          <span className="text-blue-100">Thời gian còn lại:</span>
+          <span className="text-2xl font-bold text-white tabular-nums">{timerActive ? `${remaining}s` : 'Chờ bắt đầu...'}</span>
+        </div>
       </div>
 
       {/* Reveal Board */}
@@ -297,55 +320,35 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
                 </div>
               )}
 
-              {/* Buzzer Section */}
-              {!currentAnswer && !isWordPuzzle && !eliminatedPlayers.has(currentPlayerId) && (
+              {/* Timer-based answer input */}
+              {!currentAnswer && !eliminatedPlayers.has(currentPlayerId) && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {playingPlayers.map((player) => (
-                      <Buzzer
-                        key={player.id}
-                        playerId={player.id}
-                        playerName={player.name}
-                        onBuzzerPress={handleBuzzerPress}
-                        disabled={!!firstBuzzerPress}
-                        firstPress={firstBuzzerPress}
-                      />
-                    ))}
+                  <div className="space-y-2 p-4 bg-white/5 rounded-lg border border-white/10">
+                    <input
+                      type="text"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Nhập đáp án của bạn..."
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !submitting) {
+                          handleSubmit();
+                        }
+                      }}
+                      className="w-full px-4 py-2 rounded-lg bg-white text-gray-800 text-lg"
+                      disabled={submitting || !timerActive || remaining <= 0}
+                    />
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={submitting || !answer.trim() || !timerActive || remaining <= 0}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {submitting ? 'Đang gửi...' : 'Gửi câu trả lời'}
+                    </Button>
+                    <p className="text-xs text-blue-200">
+                      Thời gian sẽ được ghi lại tự động khi bạn gửi.
+                    </p>
                   </div>
-
-                  {firstBuzzerPress === currentPlayerId && (
-                    <div className="space-y-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-400">
-                      <p className="text-yellow-200 font-semibold text-center">
-                        Bạn đã bấm chuông đầu tiên! Hãy trả lời câu hỏi.
-                      </p>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={answer}
-                          onChange={(e) => setAnswer(e.target.value)}
-                          placeholder="Nhập câu trả lời..."
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !submitting) {
-                              handleSubmit();
-                            }
-                          }}
-                          className="w-full px-4 py-2 rounded-lg bg-white text-gray-800 text-lg"
-                          disabled={submitting}
-                        />
-                        <Button onClick={handleSubmit} disabled={submitting || !answer.trim()} className="w-full" size="lg">
-                          {submitting ? 'Đang gửi...' : 'Gửi câu trả lời'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {firstBuzzerPress && firstBuzzerPress !== currentPlayerId && (
-                    <div className="p-4 bg-gray-500/20 rounded-lg border border-gray-400 text-center">
-                      <p className="text-gray-300">
-                        {playingPlayers.find((p) => p.id === firstBuzzerPress)?.name} đã bấm chuông đầu tiên
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 

@@ -8,10 +8,12 @@ import {
   getGameByCode,
   getPlayers,
   getQuestions,
+  getAnswersForRound,
   nextRound,
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
+import { startVCNVTimer, stopVCNVTimer, awardPoints } from '@/services/gameService';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import type { RoundType } from '@/services/gameService';
@@ -28,6 +30,9 @@ const GameHost = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRound1Modal, setShowRound1Modal] = useState(false);
+  const [round1Monitoring, setRound1Monitoring] = useState(false);
+  const [round1QuestionIds, setRound1QuestionIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!code) {
@@ -106,6 +111,67 @@ const GameHost = () => {
       if (pollingInterval) clearInterval(pollingInterval);
     };
   }, [code, navigate]);
+
+  // Monitor round 1 completion to show host modal with leader
+  useEffect(() => {
+    let channel: ReturnType<typeof (window as any).supabase?.channel> | null = null;
+    let cancelled = false;
+
+    const setup = async () => {
+      if (!game?.id || game.current_round !== 'khoi_dong' || round1Monitoring) return;
+      setRound1Monitoring(true);
+
+      // Load round 1 questions to build subscription filter
+      const { questions: q1 } = await getQuestions(game.id, 'khoi_dong' as any);
+      const questionIds = (q1 || []).map((q) => q.id);
+      setRound1QuestionIds(questionIds);
+
+      // Helper to check completion
+      const checkCompletion = async () => {
+        if (cancelled) return;
+        const { answers } = await getAnswersForRound(game.id, 'khoi_dong' as any);
+        const playing = players.filter((p) => !p.is_host);
+        const totalQuestions = questionIds.length;
+        if (totalQuestions === 0 || playing.length === 0) return;
+
+        let allCompleted = true;
+        for (const p of playing) {
+          const count = (answers || []).filter((a) => a.player_id === p.id).length;
+          if (count < totalQuestions) {
+            allCompleted = false;
+            break;
+          }
+        }
+        if (allCompleted) {
+          setShowRound1Modal(true);
+        }
+      };
+
+      await checkCompletion();
+
+      // Subscribe to answers updates for round 1
+      if (questionIds.length > 0) {
+        const filter = `question_id=in.(${questionIds.join(',')})`;
+        const supa = (window as any).supabase || null;
+        if (supa) {
+          channel = supa
+            .channel(`host:answers:khoi_dong:${Date.now()}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter }, () => {
+              checkCompletion();
+            })
+            .subscribe();
+        }
+      }
+    };
+
+    setup();
+    return () => {
+      cancelled = true;
+      if (channel && (window as any).supabase) {
+        (window as any).supabase.removeChannel(channel);
+      }
+    };
+  }, [game?.id, game?.current_round, players, round1Monitoring]);
 
   if (loading) {
     return (
@@ -187,6 +253,87 @@ const GameHost = () => {
             {/* Left Column - Scoreboard */}
             <div className="lg:col-span-2 space-y-6">
               <Scoreboard players={playingPlayers} showPositions={true} />
+              {/* Host modal for end of Round 1 */}
+              {showRound1Modal && (
+                <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+                  {/* Inline modal-like summary for clarity; we can use RoundResultModal if preferred */}
+                  <Card className="bg-white/10 border-white/20">
+                    <CardHeader>
+                      <CardTitle className="text-2xl">Kết thúc Phần 1 - Khởi động</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-blue-100">Tất cả thí sinh đã hoàn thành. Công bố người dẫn đầu:</p>
+                      <Scoreboard players={playingPlayers} showPositions={true} />
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => setShowRound1Modal(false)}
+                        >
+                          Đóng
+                        </Button>
+                        {canMoveToNextRound && (
+                          <Button
+                            onClick={handleNextRound}
+                            className="bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            Chuyển sang phần thi tiếp theo
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {/* VCNV Controls for Host */}
+              {game.current_round === 'vuot_chuong_ngai_vat' && (
+                <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Điều khiển phần 2 - Vượt chướng ngại vật</span>
+                      <span className="text-sm text-blue-200">Bắt đầu đếm ngược 10s và chấm điểm thủ công</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={() => startVCNVTimer(game.id, 10)}>
+                        Bắt đầu 10s
+                      </Button>
+                      <Button variant="outline" className="border-blue-300 text-blue-200 hover:bg-blue-500/20" onClick={() => stopVCNVTimer(game.id)}>
+                        Dừng
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-blue-100 text-sm">Cộng điểm nhanh cho từng thí sinh:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {playingPlayers.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                            <span className="font-semibold">{p.name}</span>
+                            <div className="flex items-center gap-2">
+                              {[40, 30, 20, 10].map((pts) => (
+                                <Button
+                                  key={pts}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={async () => {
+                                    const { error } = await awardPoints(p.id, pts);
+                                    if (error) {
+                                      toast({ title: 'Lỗi', description: `Không thể cộng điểm ${pts}`, variant: 'destructive' });
+                                    } else {
+                                      toast({ title: 'Đã cộng điểm', description: `+${pts} cho ${p.name}` });
+                                    }
+                                  }}
+                                >
+                                  +{pts}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column - Players */}

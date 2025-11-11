@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Timer } from '@/components/game/Timer';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import { toast } from '@/hooks/use-toast';
-import { getAnswersForRound } from '@/services/gameService';
+import { getAnswersForRound, emitRoundFinished } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { CheckCircle2, XCircle, Trophy, AlertTriangle, Crown, Volume2, VolumeX } from 'lucide-react';
@@ -139,6 +139,8 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
           setTimeout(() => {
             onRoundComplete();
           }, 500);
+          // Emit round finished for realtime navigation
+          emitRoundFinished(gameId, 'khoi_dong' as any).catch(() => {});
           return 0;
         }
         return prev - 1;
@@ -252,7 +254,8 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         description: 'Tất cả thí sinh đã hoàn thành phần thi. Đang tính điểm...',
         variant: 'default',
       });
-      
+      // Emit round finished for realtime navigation
+      emitRoundFinished(gameId, 'khoi_dong' as any).catch(() => {});
       // onRoundComplete will be called when modal is closed
     }
   }, [allPlayersCompleted, showResults, roundEnded, onRoundComplete]);
