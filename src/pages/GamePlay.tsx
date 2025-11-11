@@ -134,42 +134,57 @@ const GamePlay = () => {
         // Load questions for current round will be handled by useEffect below
 
         // Reset video intro state when loading game
+        // Don't clear videoIntroCompleted here - it should persist across reloads
+        // Only clear it when round actually changes
         setShowVideoIntro(false);
         setCurrentIntroVideo(null);
         videoIntroCheckedRef.current.clear();
 
         // Check if we need to show video intro for current round
+        // Always show intro if round hasn't been completed yet
         if (gameData.current_round) {
-          let introVideos: Record<string, string> | null = null;
+          const currentRound = gameData.current_round as RoundType;
+          const hasCompleted = videoIntroCompleted.has(currentRound);
           
-          // Parse intro_videos if it's a string (JSON)
-          if (gameData.intro_videos) {
-            if (typeof gameData.intro_videos === 'string') {
-              try {
-                introVideos = JSON.parse(gameData.intro_videos);
-              } catch (e) {
-                console.error('Error parsing intro_videos JSON:', e);
+          if (!hasCompleted) {
+            let introVideos: Record<string, string> | null = null;
+            
+            // Parse intro_videos if it's a string (JSON)
+            if (gameData.intro_videos) {
+              if (typeof gameData.intro_videos === 'string') {
+                try {
+                  introVideos = JSON.parse(gameData.intro_videos);
+                } catch (e) {
+                  console.error('Error parsing intro_videos JSON:', e);
+                }
+              } else if (typeof gameData.intro_videos === 'object') {
+                introVideos = gameData.intro_videos as Record<string, string>;
               }
-            } else if (typeof gameData.intro_videos === 'object') {
-              introVideos = gameData.intro_videos as Record<string, string>;
             }
-          }
 
-          const videoUrl = introVideos?.[gameData.current_round];
-          const hasVideo = Boolean(videoUrl && videoUrl.trim());
+            const videoUrl = introVideos?.[currentRound];
+            const hasVideo = Boolean(videoUrl && videoUrl.trim());
 
-          if (!videoIntroCheckedRef.current.has(gameData.current_round)) {
-            videoIntroCheckedRef.current.add(gameData.current_round);
+            console.log('=== Setting up intro for round ===', {
+              round: currentRound,
+              hasVideo,
+              videoUrl,
+              hasCompleted,
+            });
+
+            // Always show intro (video or fallback) for new rounds
             if (hasVideo) {
               setCurrentIntroVideo(videoUrl || null);
-              setShowVideoIntro(true);
             } else {
               setCurrentIntroVideo(null);
-              setShowVideoIntro(true);
             }
+            setShowVideoIntro(true);
+            videoIntroCheckedRef.current.add(currentRound);
+          } else {
+            console.log('Round intro already completed, skipping:', currentRound);
           }
         } else {
-          console.log('❌ No intro videos or current round:', {
+          console.log('❌ No current round:', {
             hasCurrentRound: !!gameData.current_round,
             hasIntroVideos: !!gameData.intro_videos,
           });
@@ -417,21 +432,28 @@ const GamePlay = () => {
     }
   };
 
-  if (showVideoIntro && game?.current_round) {
+  // Show intro if:
+  // 1. showVideoIntro is true AND
+  // 2. We have a current round AND
+  // 3. The round hasn't been completed yet
+  const shouldShowIntro = showVideoIntro && game?.current_round && !videoIntroCompleted.has(game.current_round as RoundType);
+  
+  if (shouldShowIntro && game?.current_round) {
     const handleIntroComplete = () => {
       console.log('Intro completed for round:', game.current_round);
+      const currentRound = game.current_round as RoundType;
       setShowVideoIntro(false);
-      if (game.current_round) {
-        setVideoIntroCompleted((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(game.current_round!);
-          return newSet;
-        });
-      }
+      setVideoIntroCompleted((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(currentRound);
+        console.log('Marked round as completed:', currentRound, Array.from(newSet));
+        return newSet;
+      });
       setCurrentIntroVideo(null);
     };
 
     if (currentIntroVideo) {
+      console.log('Rendering VideoIntro for round:', game.current_round, 'Video URL:', currentIntroVideo);
       return (
         <VideoIntro
           videoUrl={currentIntroVideo}
@@ -441,6 +463,7 @@ const GamePlay = () => {
       );
     }
 
+    console.log('Rendering FallbackIntro for round:', game.current_round);
     return <FallbackIntro title={getRoundTitle(game.current_round)} onComplete={handleIntroComplete} />;
   }
 
