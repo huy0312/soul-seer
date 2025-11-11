@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RoundDisplay } from '@/components/game/RoundDisplay';
@@ -12,8 +12,16 @@ import {
   nextRound,
   subscribeToGame,
   subscribeToPlayers,
+  createQuestions,
 } from '@/services/gameService';
-import { startVCNVTimer, stopVCNVTimer, awardPoints, emitRoundFinished, createVCNVSignalChannel } from '@/services/gameService';
+import {
+  startVCNVTimer,
+  stopVCNVTimer,
+  awardPoints,
+  emitRoundFinished,
+  createVCNVSignalChannel,
+  createVCNVTimerChannel,
+} from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { Button } from '@/components/ui/button';
@@ -22,9 +30,11 @@ import type { RoundType } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import { Crown, Users } from 'lucide-react';
+import { playCountdownSound } from '@/utils/audio';
 
 type Game = Database['public']['Tables']['games']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
+type AnswerRow = Database['public']['Tables']['answers']['Row'];
 
 const GameHost = () => {
   const { code } = useParams<{ code: string }>();
@@ -37,6 +47,13 @@ const GameHost = () => {
   const [round1QuestionIds, setRound1QuestionIds] = useState<string[]>([]);
   const [round1Announced, setRound1Announced] = useState(false);
   const [vcnvSignal, setVCNVSignal] = useState<{ playerId: string; playerName?: string } | null>(null);
+  const [vcnvQuestionId, setVCNVQuestionId] = useState<string | null>(null);
+  const [vcnvAnswers, setVCNVAnswers] = useState<Array<AnswerRow & { playerName?: string }>>([]);
+  const vcnvAnswersChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const vcnvQuestionFetchRef = useRef(false);
+  const vcnvTimerStartRef = useRef<number | null>(null);
+  const vcnvTimerIntervalRef = useRef<number | null>(null);
+  const [vcnvTimerRemaining, setVCNVTimerRemaining] = useState<number>(0);
 
   useEffect(() => {
     if (!code) {
@@ -186,9 +203,22 @@ const GameHost = () => {
   useEffect(() => {
     if (!game?.id || game.current_round !== 'vuot_chuong_ngai_vat') {
       setVCNVSignal(null);
+      setVCNVAnswers([]);
+      setVCNVQuestionId(null);
+      vcnvTimerStartRef.current = null;
+      setVCNVTimerRemaining(0);
+      if (vcnvAnswersChannelRef.current) {
+        supabase.removeChannel(vcnvAnswersChannelRef.current);
+        vcnvAnswersChannelRef.current = null;
+      }
+      if (vcnvTimerIntervalRef.current) {
+        window.clearInterval(vcnvTimerIntervalRef.current);
+        vcnvTimerIntervalRef.current = null;
+      }
+      vcnvQuestionFetchRef.current = false;
       return;
     }
-    const unsubscribe = createVCNVSignalChannel(game.id, (payload) => {
+    const unsubscribeSignal = createVCNVSignalChannel(game.id, (payload) => {
       setVCNVSignal(payload);
       toast({
         title: 'Tín hiệu chướng ngại vật!',
@@ -196,9 +226,169 @@ const GameHost = () => {
       });
     });
     return () => {
-      unsubscribe();
+      unsubscribeSignal();
     };
   }, [game?.id, game?.current_round]);
+
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'vuot_chuong_ngai_vat') {
+      return;
+    }
+
+    const setupTimerChannel = createVCNVTimerChannel(game.id, (evt) => {
+      if (evt.type === 'start') {
+        const durationSec = Number(evt.payload?.durationSec) || 10;
+        const startedAt = Number(evt.payload?.startedAt) || Date.now();
+        const endAt = startedAt + durationSec * 1000;
+
+        if (vcnvTimerStartRef.current !== startedAt) {
+          vcnvTimerStartRef.current = startedAt;
+          setVCNVAnswers([]);
+          playCountdownSound(durationSec);
+        }
+
+        if (vcnvTimerIntervalRef.current) {
+          window.clearInterval(vcnvTimerIntervalRef.current);
+        }
+
+        const tick = () => {
+          const now = Date.now();
+          const remainingMs = Math.max(0, endAt - now);
+          setVCNVTimerRemaining(Math.ceil(remainingMs / 1000));
+          if (remainingMs <= 0 && vcnvTimerIntervalRef.current) {
+            window.clearInterval(vcnvTimerIntervalRef.current);
+            vcnvTimerIntervalRef.current = null;
+          }
+        };
+
+        tick();
+        vcnvTimerIntervalRef.current = window.setInterval(tick, 200);
+      }
+
+      if (evt.type === 'stop') {
+        if (vcnvTimerIntervalRef.current) {
+          window.clearInterval(vcnvTimerIntervalRef.current);
+          vcnvTimerIntervalRef.current = null;
+        }
+        setVCNVTimerRemaining(0);
+      }
+    });
+
+    return () => {
+      setupTimerChannel();
+      if (vcnvTimerIntervalRef.current) {
+        window.clearInterval(vcnvTimerIntervalRef.current);
+        vcnvTimerIntervalRef.current = null;
+      }
+    };
+  }, [game?.id, game?.current_round]);
+
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'vuot_chuong_ngai_vat' || vcnvQuestionFetchRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    const channelName = `host:vcnv_answers:${Date.now()}`;
+
+    const loadQuestionAndSubscribe = async () => {
+      vcnvQuestionFetchRef.current = true;
+      try {
+        const { questions } = await getQuestions(game.id, 'vuot_chuong_ngai_vat' as RoundType);
+        let questionId = questions?.[0]?.id ?? null;
+
+        if (!questionId) {
+          const { error } = await createQuestions(game.id, [
+            {
+              round: 'vuot_chuong_ngai_vat',
+              question_text: 'VCNV placeholder',
+              correct_answer: '',
+              points: 0,
+              order_index: 0,
+            },
+          ]);
+          if (!error) {
+            const { questions: refreshed } = await getQuestions(game.id, 'vuot_chuong_ngai_vat' as RoundType);
+            questionId = refreshed?.[0]?.id ?? null;
+          }
+        }
+
+        if (!questionId || cancelled) {
+          return;
+        }
+
+        setVCNVQuestionId(questionId);
+
+        const { answers } = await getAnswersForRound(game.id, 'vuot_chuong_ngai_vat' as RoundType);
+        if (!cancelled && answers) {
+          const mapped = answers
+            .filter((ans) => ans.question_id === questionId)
+            .map((ans) => ({
+              ...ans,
+              playerName: players.find((p) => p.id === ans.player_id)?.name,
+            }));
+          setVCNVAnswers(mapped);
+        }
+
+        const channel = supabase
+          .channel(channelName)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'answers',
+              filter: `question_id=eq.${questionId}`,
+            },
+            (payload) => {
+              const row = payload.new as AnswerRow;
+              if (!row) return;
+              setVCNVAnswers((prev) => {
+                const next = [...prev];
+                const idx = next.findIndex((ans) => ans.player_id === row.player_id);
+                const enriched = {
+                  ...row,
+                  playerName: players.find((p) => p.id === row.player_id)?.name,
+                };
+                if (idx >= 0) {
+                  next[idx] = enriched;
+                } else {
+                  next.push(enriched);
+                }
+                return next;
+              });
+            }
+          )
+          .subscribe();
+
+        vcnvAnswersChannelRef.current = channel;
+      } catch (error) {
+        console.error('Unable to load VCNV answers', error);
+      }
+    };
+
+    loadQuestionAndSubscribe();
+
+    return () => {
+      cancelled = true;
+      if (vcnvAnswersChannelRef.current) {
+        supabase.removeChannel(vcnvAnswersChannelRef.current);
+        vcnvAnswersChannelRef.current = null;
+      }
+      vcnvQuestionFetchRef.current = false;
+    };
+  }, [game?.id, game?.current_round, players]);
+
+  useEffect(() => {
+    if (!vcnvQuestionId) return;
+    // Refresh player names in answer list if player list changes
+    setVCNVAnswers((prev) =>
+      prev.map((ans) => ({
+        ...ans,
+        playerName: players.find((p) => p.id === ans.player_id)?.name,
+      }))
+    );
+  }, [players, vcnvQuestionId]);
 
   if (loading) {
     return (
@@ -310,13 +500,45 @@ const GameHost = () => {
                         🚨 {vcnvSignal.playerName || 'Một thí sinh'} báo đã tìm ra chướng ngại vật!
                       </div>
                     )}
-                    <div className="flex items-center gap-3">
-                      <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={() => { setVCNVSignal(null); startVCNVTimer(game.id, 10); }}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        className="bg-yellow-600 hover:bg-yellow-700"
+                        onClick={async () => {
+                          setVCNVSignal(null);
+                          setVCNVAnswers([]);
+                          try {
+                            await startVCNVTimer(game.id, 10);
+                          } catch (error) {
+                            console.error('Unable to start VCNV timer', error);
+                            toast({
+                              title: 'Lỗi',
+                              description: 'Không thể bắt đầu đếm ngược 10s.',
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                      >
                         Bắt đầu 10s
                       </Button>
-                      <Button variant="outline" className="border-blue-300 text-blue-200 hover:bg-blue-500/20" onClick={() => stopVCNVTimer(game.id)}>
+                      <Button
+                        variant="outline"
+                        className="border-blue-300 text-blue-200 hover:bg-blue-500/20"
+                        onClick={async () => {
+                          try {
+                            await stopVCNVTimer(game.id);
+                          } catch (error) {
+                            console.error('Unable to stop VCNV timer', error);
+                          }
+                        }}
+                      >
                         Dừng
                       </Button>
+                      <div className="ml-auto flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 border border-white/20">
+                        <span className="text-sm text-blue-200">Thời gian còn lại:</span>
+                        <span className="text-3xl font-bold text-white tabular-nums">
+                          {vcnvTimerRemaining > 0 ? `${vcnvTimerRemaining}s` : '—'}
+                        </span>
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <p className="text-blue-100 text-sm">Cộng điểm nhanh cho từng thí sinh:</p>
@@ -345,6 +567,31 @@ const GameHost = () => {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-blue-100 text-sm font-semibold">Đáp án thí sinh (cập nhật realtime)</p>
+                      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        {vcnvAnswers.length === 0 ? (
+                          <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-blue-200 text-sm">
+                            Chưa có đáp án nào. Bấm bắt đầu 10s để thu thập đáp án mới.
+                          </div>
+                        ) : (
+                          vcnvAnswers.map((answer) => (
+                            <div
+                              key={`${answer.player_id}-${answer.id}`}
+                              className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col gap-1"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-white">{answer.playerName || 'Ẩn danh'}</span>
+                                <span className="text-xs text-blue-200">
+                                  {answer.response_time != null ? `${answer.response_time}s` : '—'}
+                                </span>
+                              </div>
+                              <p className="text-blue-100 text-base break-words">{answer.answer_text || '—'}</p>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </CardContent>

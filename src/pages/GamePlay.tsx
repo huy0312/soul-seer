@@ -22,6 +22,41 @@ import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import type { RoundType } from '@/services/gameService';
 
+const FallbackIntro = ({ title, onComplete }: { title: string; onComplete: () => void }) => {
+  const [countdown, setCountdown] = useState(3);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (!completedRef.current) {
+            completedRef.current = true;
+            onComplete();
+          }
+          window.clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex flex-col items-center justify-center">
+      <div className="text-center space-y-6">
+        <h2 className="text-4xl font-bold">{title}</h2>
+        <p className="text-xl text-blue-100">Chuẩn bị sẵn sàng...</p>
+        <div className="text-6xl font-extrabold text-white tabular-nums">{countdown}</div>
+      </div>
+    </div>
+  );
+};
+
 type Game = Database['public']['Tables']['games']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
 type Question = Database['public']['Tables']['questions']['Row'];
@@ -104,39 +139,34 @@ const GamePlay = () => {
         videoIntroCheckedRef.current.clear();
 
         // Check if we need to show video intro for current round
-        if (gameData.current_round && gameData.intro_videos) {
+        if (gameData.current_round) {
           let introVideos: Record<string, string> | null = null;
           
           // Parse intro_videos if it's a string (JSON)
-          if (typeof gameData.intro_videos === 'string') {
-            try {
-              introVideos = JSON.parse(gameData.intro_videos);
-            } catch (e) {
-              console.error('Error parsing intro_videos JSON:', e);
+          if (gameData.intro_videos) {
+            if (typeof gameData.intro_videos === 'string') {
+              try {
+                introVideos = JSON.parse(gameData.intro_videos);
+              } catch (e) {
+                console.error('Error parsing intro_videos JSON:', e);
+              }
+            } else if (typeof gameData.intro_videos === 'object') {
+              introVideos = gameData.intro_videos as Record<string, string>;
             }
-          } else if (typeof gameData.intro_videos === 'object' && gameData.intro_videos !== null) {
-            introVideos = gameData.intro_videos as Record<string, string>;
           }
-          
-          console.log('=== Video Intro Debug (Load Game) ===');
-          console.log('Intro videos raw:', gameData.intro_videos);
-          console.log('Intro videos parsed:', introVideos);
-          console.log('Current round:', gameData.current_round);
-          console.log('Video for current round:', introVideos?.[gameData.current_round]);
-          
+
           const videoUrl = introVideos?.[gameData.current_round];
-          const hasVideo = videoUrl && videoUrl.trim();
-          
-          console.log('Has video URL:', hasVideo);
-          console.log('Video URL:', videoUrl);
-          
-          if (hasVideo) {
-            console.log('✅ Setting video intro:', videoUrl);
+          const hasVideo = Boolean(videoUrl && videoUrl.trim());
+
+          if (!videoIntroCheckedRef.current.has(gameData.current_round)) {
             videoIntroCheckedRef.current.add(gameData.current_round);
-            setCurrentIntroVideo(videoUrl);
-            setShowVideoIntro(true);
-          } else {
-            console.log('❌ No video URL for current round');
+            if (hasVideo) {
+              setCurrentIntroVideo(videoUrl || null);
+              setShowVideoIntro(true);
+            } else {
+              setCurrentIntroVideo(null);
+              setShowVideoIntro(true);
+            }
           }
         } else {
           console.log('❌ No intro videos or current round:', {
@@ -188,15 +218,19 @@ const GamePlay = () => {
               console.log('Video for new round:', introVideos?.[updatedGame.current_round]);
               
               const videoUrl = introVideos?.[updatedGame.current_round];
-              const hasVideo = videoUrl && videoUrl.trim();
+              const hasVideo = Boolean(videoUrl && videoUrl.trim());
               
-              if (hasVideo) {
-                console.log('✅ Setting video intro for new round:', videoUrl);
+              if (!videoIntroCheckedRef.current.has(updatedGame.current_round as RoundType)) {
                 videoIntroCheckedRef.current.add(updatedGame.current_round as RoundType);
-                setCurrentIntroVideo(videoUrl);
-                setShowVideoIntro(true);
-              } else {
-                console.log('❌ No video URL for new round');
+                if (hasVideo) {
+                  console.log('✅ Setting video intro for new round:', videoUrl);
+                  setCurrentIntroVideo(videoUrl);
+                  setShowVideoIntro(true);
+                } else {
+                  console.log('❌ No video URL for new round, using fallback intro');
+                  setCurrentIntroVideo(null);
+                  setShowVideoIntro(true);
+                }
               }
             }, 100);
             
@@ -383,26 +417,31 @@ const GamePlay = () => {
     }
   };
 
-  if (showVideoIntro && currentIntroVideo && game?.current_round) {
-    return (
-      <VideoIntro
-        videoUrl={currentIntroVideo}
-        onComplete={() => {
-          console.log('Video intro completed for round:', game.current_round);
-          setShowVideoIntro(false);
-          if (game.current_round) {
-            setVideoIntroCompleted((prev) => {
-              const newSet = new Set(prev);
-              newSet.add(game.current_round!);
-              console.log('Updated completed rounds:', Array.from(newSet));
-              return newSet;
-            });
-          }
-          setCurrentIntroVideo(null);
-        }}
-        title={getRoundTitle(game.current_round)}
-      />
-    );
+  if (showVideoIntro && game?.current_round) {
+    const handleIntroComplete = () => {
+      console.log('Intro completed for round:', game.current_round);
+      setShowVideoIntro(false);
+      if (game.current_round) {
+        setVideoIntroCompleted((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(game.current_round!);
+          return newSet;
+        });
+      }
+      setCurrentIntroVideo(null);
+    };
+
+    if (currentIntroVideo) {
+      return (
+        <VideoIntro
+          videoUrl={currentIntroVideo}
+          onComplete={handleIntroComplete}
+          title={getRoundTitle(game.current_round)}
+        />
+      );
+    }
+
+    return <FallbackIntro title={getRoundTitle(game.current_round)} onComplete={handleIntroComplete} />;
   }
 
   return (

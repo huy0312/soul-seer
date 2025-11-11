@@ -10,6 +10,7 @@ import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { playCountdownSound } from '@/utils/audio';
 
 type Question = Database['public']['Tables']['questions']['Row'];
 type Player = Database['public']['Tables']['players']['Row'];
@@ -46,6 +47,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const durationRef = useRef<number>(10);
+  const timerStartSignatureRef = useRef<number | null>(null);
   const [signalSent, setSignalSent] = useState(false);
 
   // VCNV mode: no DB questions needed, just timer + input
@@ -108,6 +110,13 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         startedAtRef.current = typeof startedAt === 'number' ? startedAt : Date.now();
         const endAt = startedAtRef.current + durationRef.current * 1000;
         setTimerActive(true);
+        if (timerStartSignatureRef.current !== startedAtRef.current) {
+          timerStartSignatureRef.current = startedAtRef.current;
+          setPlayerAnswers(new Map());
+          setAnswer('');
+          setSignalSent(false);
+          playCountdownSound(durationRef.current).catch(() => {});
+        }
         const tick = () => {
           const now = Date.now();
           const remainMs = Math.max(0, endAt - now);
@@ -126,6 +135,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
       } else if (evt.type === 'stop') {
         setTimerActive(false);
         setRemaining(0);
+        timerStartSignatureRef.current = null;
         if (timerRef.current) {
           window.clearInterval(timerRef.current);
           timerRef.current = null;
