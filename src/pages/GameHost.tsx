@@ -14,6 +14,7 @@ import {
   subscribeToPlayers,
 } from '@/services/gameService';
 import { startVCNVTimer, stopVCNVTimer, awardPoints } from '@/services/gameService';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import type { RoundType } from '@/services/gameService';
@@ -114,7 +115,7 @@ const GameHost = () => {
 
   // Monitor round 1 completion to show host modal with leader
   useEffect(() => {
-    let channel: ReturnType<typeof (window as any).supabase?.channel> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
 
     const setup = async () => {
@@ -152,23 +153,20 @@ const GameHost = () => {
       // Subscribe to answers updates for round 1
       if (questionIds.length > 0) {
         const filter = `question_id=in.(${questionIds.join(',')})`;
-        const supa = (window as any).supabase || null;
-        if (supa) {
-          channel = supa
-            .channel(`host:answers:khoi_dong:${Date.now()}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter }, () => {
-              checkCompletion();
-            })
-            .subscribe();
-        }
+        channel = supabase
+          .channel(`host:answers:khoi_dong:${Date.now()}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter }, () => {
+            checkCompletion();
+          })
+          .subscribe();
       }
     };
 
     setup();
     return () => {
       cancelled = true;
-      if (channel && (window as any).supabase) {
-        (window as any).supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
       }
     };
   }, [game?.id, game?.current_round, players, round1Monitoring]);
