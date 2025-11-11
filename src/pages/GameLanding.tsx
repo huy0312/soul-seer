@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Trophy, Users, Play, Sparkles, Zap, Target, Award, Mic } from 'lucide-react';
 import GameHeader from '@/components/game/GameHeader';
 import GameFooter from '@/components/game/GameFooter';
+import MCCard from '@/components/game/MCCard';
 
 const GameLanding = () => {
   const navigate = useNavigate();
@@ -141,63 +142,26 @@ const GameLanding = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* MC Phúc Nguyên */}
-            <div className="group bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden">
-              <div className="relative mb-6">
-                <div className="aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                  <img
-                    src="/MC/phuc-nguyen.jpg"
-                    alt="MC Phúc Nguyên"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.svg';
-                    }}
-                  />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
-                    <p className="text-white text-sm font-medium">MC chuyên nghiệp với nhiều năm kinh nghiệm</p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Phúc Nguyên
-                </h3>
-                <p className="text-blue-200">MC chính của chương trình</p>
-              </div>
-            </div>
-
-            {/* MC Linh Chi */}
-            <div className="group bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden">
-              <div className="relative mb-6">
-                <div className="aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br from-pink-500/20 to-orange-500/20">
-                  <img
-                    src="/MC/linh-chi.jpg"
-                    alt="MC Linh Chi"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.svg';
-                    }}
-                  />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
-                    <p className="text-white text-sm font-medium">MC trẻ trung, năng động và đầy nhiệt huyết</p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
-                  Linh Chi
-                </h3>
-                <p className="text-blue-200">MC đồng hành của chương trình</p>
-              </div>
-            </div>
+            <MCCard
+              name="Phúc Nguyên"
+              role="MC chính của chương trình"
+              description="MC chuyên nghiệp với nhiều năm kinh nghiệm"
+              imageName="phuc-nguyen"
+              gradientFrom="from-blue-500/20"
+              gradientTo="to-purple-500/20"
+              textGradientFrom="from-blue-400"
+              textGradientTo="to-purple-400"
+            />
+            <MCCard
+              name="Linh Chi"
+              role="MC đồng hành của chương trình"
+              description="MC trẻ trung, năng động và đầy nhiệt huyết"
+              imageName="linh-chi"
+              gradientFrom="from-pink-500/20"
+              gradientTo="to-orange-500/20"
+              textGradientFrom="from-pink-400"
+              textGradientTo="to-orange-400"
+            />
           </div>
         </div>
       </div>
