@@ -24,7 +24,6 @@ import {
   showTangTocQuestion,
   startTangTocTimer,
   stopTangTocTimer,
-  getQuestions,
 } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
