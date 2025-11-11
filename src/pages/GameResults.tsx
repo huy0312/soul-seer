@@ -66,8 +66,10 @@ const GameResults = () => {
     return null;
   }
 
-  const winner = players.find((p) => p.position === 1);
-  const sortedPlayers = [...players].sort((a, b) => {
+  // Filter out host from players list
+  const playingPlayers = players.filter((p) => !p.is_host);
+  const winner = playingPlayers.find((p) => p.position === 1);
+  const sortedPlayers = [...playingPlayers].sort((a, b) => {
     if (a.position && b.position) return a.position - b.position;
     return b.score - a.score;
   });

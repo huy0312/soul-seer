@@ -72,9 +72,13 @@ const GamePlay = () => {
         const storedPlayerId = localStorage.getItem(`player_${code}`);
         const isHost = localStorage.getItem(`is_host_${code}`) === 'true';
 
+        // If host tries to access play page, redirect to host dashboard
+        if (isHost) {
+          navigate(`/game/host/${code}`);
+          return;
+        }
+
         if (storedPlayerId) {
-          // Allow host to also see gameplay (for intro videos and round transitions)
-          // But they can still access host panel via direct navigation
           setCurrentPlayerId(storedPlayerId);
         } else {
           navigate(`/game/lobby/${code}`);

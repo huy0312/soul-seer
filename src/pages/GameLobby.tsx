@@ -90,11 +90,17 @@ const GameLobby = () => {
         unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
           console.log('Game status changed:', updatedGame.status);
           setGame(updatedGame);
-          // When game starts, all players (including host) automatically navigate to intro
-          if (updatedGame.status === 'playing') {
+          // When game starts, only non-host players navigate to intro
+          // Host should stay on host dashboard
+          if (updatedGame.status === 'playing' && !isHost) {
             // Small delay to ensure state is updated
             setTimeout(() => {
               navigate(`/game/intro/${code}`);
+            }, 100);
+          } else if (updatedGame.status === 'playing' && isHost) {
+            // Host navigates to host dashboard
+            setTimeout(() => {
+              navigate(`/game/host/${code}`);
             }, 100);
           }
         });
@@ -121,8 +127,12 @@ const GameLobby = () => {
           if (currentGame && currentGame.status === 'playing' && gameData.status === 'waiting') {
             // Update local state first
             setGame(currentGame);
-            // Navigate to intro screen
-            navigate(`/game/intro/${code}`);
+            // Navigate based on host status
+            if (isHost) {
+              navigate(`/game/host/${code}`);
+            } else {
+              navigate(`/game/intro/${code}`);
+            }
           }
         }, 500);
 
@@ -168,10 +178,10 @@ const GameLobby = () => {
         description: 'Tất cả thí sinh sẽ tự động được chuyển vào màn hình chơi...',
       });
 
-      // Host also navigates to intro screen
+      // Host navigates to host dashboard, not to intro/play
       // Other players will be automatically redirected via subscription
       setTimeout(() => {
-        navigate(`/game/intro/${code}`);
+        navigate(`/game/host/${code}`);
       }, 300);
     } catch (error) {
       toast({
@@ -256,6 +266,13 @@ const GameLobby = () => {
             <div className="space-y-6">
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6">
+                  {isHost && (
+                    <div className="mb-4 p-3 bg-yellow-500/20 rounded-lg border border-yellow-300/30">
+                      <p className="text-yellow-200 text-xs">
+                        👑 Bạn là người tổ chức và không được tính vào 4 thí sinh
+                      </p>
+                    </div>
+                  )}
                   <PlayerList 
                     players={players.filter((p) => !p.is_host)} 
                     maxPlayers={4} 

@@ -38,12 +38,6 @@ const GameIntro = () => {
 
         setGame(gameData);
 
-        // If game is already playing, redirect to play page
-        if (gameData.status === 'playing') {
-          navigate(`/game/play/${code}`);
-          return;
-        }
-
         // Get players to verify host status
         const { players, error: playersError } = await getPlayers(gameData.id);
         if (!playersError && players) {
@@ -51,16 +45,33 @@ const GameIntro = () => {
           const currentPlayer = players.find((p) => p.id === storedPlayerId);
           if (currentPlayer?.is_host) {
             setIsHost(true);
+            // Host should not be on intro page - redirect to host dashboard
+            navigate(`/game/host/${code}`);
+            return;
           } else {
             setIsHost(false);
           }
         } else {
-          setIsHost(storedIsHost);
+          if (storedIsHost) {
+            // Host should not be on intro page - redirect to host dashboard
+            navigate(`/game/host/${code}`);
+            return;
+          }
+          setIsHost(false);
         }
 
-        // Subscribe to game changes - if game starts, redirect all players
+        // If game is already playing, redirect non-host players to play page
+        if (gameData.status === 'playing') {
+          navigate(`/game/play/${code}`);
+          return;
+        }
+
+        // Subscribe to game changes - if game starts, redirect non-host players
+        // Note: isHost is checked before subscription, so we use storedIsHost
         const unsubscribe = subscribeToGame(gameData.id, (updatedGame) => {
-          if (updatedGame.status === 'playing') {
+          // Double check host status from localStorage
+          const currentIsHost = localStorage.getItem(`is_host_${code}`) === 'true';
+          if (updatedGame.status === 'playing' && !currentIsHost) {
             navigate(`/game/play/${code}`);
           }
         });
