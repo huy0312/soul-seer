@@ -10,6 +10,7 @@ import { getAnswersForRound } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { CheckCircle2, XCircle, Trophy, AlertTriangle, Crown, Volume2, VolumeX } from 'lucide-react';
+import { RoundResultModal } from '@/components/game/RoundResultModal';
 
 type Question = Database['public']['Tables']['questions']['Row'] & {
   options?: string[] | null;
@@ -45,6 +46,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
   const [roundEnded, setRoundEnded] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [allPlayersCompleted, setAllPlayersCompleted] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
   const answeredQuestionIdsRef = useRef<Set<string>>(new Set()); // Track which questions have been answered to prevent duplicate notifications
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -239,6 +241,11 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       setRoundEnded(true);
       setShowResults(true);
       
+      // Show result modal after a brief delay
+      setTimeout(() => {
+        setShowResultModal(true);
+      }, 500);
+      
       // Notify that round is complete
       toast({
         title: 'Hoàn thành!',
@@ -246,11 +253,7 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
         variant: 'default',
       });
       
-      // Call onRoundComplete after a brief moment to allow UI to update
-      const timer = setTimeout(() => {
-        onRoundComplete();
-      }, 500);
-      return () => clearTimeout(timer);
+      // onRoundComplete will be called when modal is closed
     }
   }, [allPlayersCompleted, showResults, roundEnded, onRoundComplete]);
 
@@ -530,6 +533,17 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
           <Scoreboard players={players.filter((p) => !p.is_host)} />
         </div>
       </div>
+
+      {/* Round Result Modal */}
+      <RoundResultModal
+        isOpen={showResultModal}
+        players={players}
+        roundName="Phần 1 - Khởi động"
+        onClose={() => {
+          setShowResultModal(false);
+          onRoundComplete();
+        }}
+      />
     </div>
   );
 };

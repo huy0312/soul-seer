@@ -286,43 +286,11 @@ const GamePlay = () => {
   };
 
   const handleRoundComplete = async () => {
-    if (!game || !game.current_round) return;
-
-    const roundOrder: RoundType[] = ['khoi_dong', 'vuot_chuong_ngai_vat', 'tang_toc', 've_dich'];
-    const currentIndex = roundOrder.indexOf(game.current_round);
-
-    if (currentIndex < roundOrder.length - 1) {
-      // Move to next round
-      try {
-        const { error } = await nextRound(game.id, game.current_round);
-        if (error) throw error;
-
-        toast({
-          title: 'Chuyển phần thi',
-          description: `Chuyển sang ${roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' ? 'Vượt chướng ngại vật' : roundOrder[currentIndex + 1] === 'tang_toc' ? 'Tăng tốc' : 'Về đích'}`,
-        });
-      } catch (error) {
-        toast({
-          title: 'Lỗi',
-          description: error instanceof Error ? error.message : 'Không thể chuyển sang vòng tiếp theo',
-          variant: 'destructive',
-        });
-      }
-    } else {
-      // Finish game
-      try {
-        const { error } = await finishGame(game.id);
-        if (error) throw error;
-
-        navigate(`/game/results/${code}`);
-      } catch (error) {
-        toast({
-          title: 'Lỗi',
-          description: error instanceof Error ? error.message : 'Không thể kết thúc game',
-          variant: 'destructive',
-        });
-      }
-    }
+    // Round is complete, but don't auto-advance
+    // Host will manually advance to next round via host dashboard
+    // Players will see the result modal and wait for host to proceed
+    // Real-time subscription will handle round change when host advances
+    console.log('Round completed, waiting for host to advance to next round');
   };
 
   if (loading) {

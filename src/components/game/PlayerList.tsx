@@ -8,9 +8,10 @@ type Player = Database['public']['Tables']['players']['Row'];
 interface PlayerListProps {
   players: Player[];
   maxPlayers?: number;
+  showWaitingMessage?: boolean;
 }
 
-export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4 }) => {
+export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4, showWaitingMessage = true }) => {
   const getPlayerIcon = (position: number | null) => {
     if (position === 1) return <Trophy className="h-5 w-5 text-yellow-500" />;
     if (position === 2) return <Medal className="h-5 w-5 text-gray-400" />;
@@ -60,7 +61,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, maxPlayers = 4 
             )}
           </div>
         ))}
-        {players.length < maxPlayers && (
+        {players.length < maxPlayers && showWaitingMessage && (
           <div className="p-4 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 text-center">
             <p className="text-gray-500 text-sm">
               Đang chờ thí sinh... ({maxPlayers - players.length} chỗ trống)

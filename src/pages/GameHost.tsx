@@ -135,14 +135,19 @@ const GameHost = () => {
         const { error } = await nextRound(game.id, game.current_round);
         if (error) throw error;
 
+        const nextRoundName = roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' 
+          ? 'Vượt chướng ngại vật' 
+          : roundOrder[currentIndex + 1] === 'tang_toc' 
+          ? 'Tăng tốc' 
+          : 'Về đích';
+
         toast({
           title: 'Chuyển phần thi',
-          description: `Đã chuyển sang ${roundOrder[currentIndex + 1] === 'vuot_chuong_ngai_vat' ? 'Vượt chướng ngại vật' : roundOrder[currentIndex + 1] === 'tang_toc' ? 'Tăng tốc' : 'Về đích'}`,
+          description: `Đã chuyển sang ${nextRoundName}. Người chơi sẽ tự động được chuyển sang phần thi mới.`,
         });
         
         // The real-time subscription will update the game state automatically
-        // Host can stay on this page or navigate to GamePlay to see the round
-        // For now, let the subscription handle the update
+        // Players will automatically see the new round via their subscriptions
       } catch (error) {
         toast({
           title: 'Lỗi',
@@ -194,7 +199,7 @@ const GameHost = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PlayerList players={playingPlayers} maxPlayers={4} />
+                  <PlayerList players={playingPlayers} maxPlayers={4} showWaitingMessage={false} />
                 </CardContent>
               </Card>
 
