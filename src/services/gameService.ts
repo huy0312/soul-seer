@@ -324,6 +324,38 @@ export async function getQuestions(
   }
 }
 
+// Get all questions for a game, grouped by round
+export async function getAllQuestionsByGame(
+  gameId: string
+): Promise<{ byRound: Record<RoundType, Question[]>; error: Error | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('round', { ascending: true })
+      .order('order_index', { ascending: true });
+
+    if (error) throw error;
+
+    const byRound: Record<RoundType, Question[]> = {
+      khoi_dong: [],
+      vuot_chuong_ngai_vat: [],
+      tang_toc: [],
+      ve_dich: [],
+    };
+
+    (data || []).forEach((q) => {
+      const r = (q.round as RoundType) || 'khoi_dong';
+      byRound[r].push(q);
+    });
+
+    return { byRound, error: null };
+  } catch (error) {
+    return { byRound: { khoi_dong: [], vuot_chuong_ngai_vat: [], tang_toc: [], ve_dich: [] }, error: error as Error };
+  }
+}
+
 // Create questions for a game
 export async function createQuestions(
   gameId: string,
@@ -356,6 +388,19 @@ export async function createQuestions(
     });
     const { error } = await supabase.from('questions').insert(questionsWithGameId);
 
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+}
+
+// Delete all questions for a game (for full replace on save)
+export async function deleteQuestionsByGame(
+  gameId: string
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.from('questions').delete().eq('game_id', gameId);
     if (error) throw error;
     return { error: null };
   } catch (error) {

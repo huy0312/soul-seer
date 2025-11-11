@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, updateVCNVConfig } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, updateVCNVConfig, getAllQuestionsByGame, deleteQuestionsByGame } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -85,6 +85,42 @@ const GameQuestions = () => {
           throw error || new Error('Game not found');
         }
         setGameId(game.id);
+        // Load existing questions to sync UI with database
+        try {
+          const { byRound, error: qError } = await getAllQuestionsByGame(game.id);
+          if (!qError && byRound) {
+            const mapped: Record<RoundType, Question[]> = {
+              khoi_dong: [],
+              vuot_chuong_ngai_vat: [],
+              tang_toc: [],
+              ve_dich: [],
+            };
+            (Object.keys(mapped) as RoundType[]).forEach((round) => {
+              const list = byRound[round] || [];
+              mapped[round] = list
+                .filter((q: any) => (q.question_type || 'normal') === 'normal') // exclude VCNV generated rows from DB view here; VCNV config is handled separately below
+                .map((q: any, idx: number) => ({
+                  question_text: q.question_text || '',
+                  correct_answer: q.correct_answer || '',
+                  points: q.points ?? 10,
+                  order_index: q.order_index ?? idx + 1,
+                  question_type: (q.question_type as any) || 'normal',
+                  hang_ngang_index: q.hang_ngang_index ?? null,
+                  hint: q.hint ?? null,
+                  options: Array.isArray(q.options)
+                    ? (q.options as string[])
+                    : typeof q.options === 'string'
+                      ? (() => {
+                          try { return JSON.parse(q.options); } catch { return null; }
+                        })()
+                      : null,
+                }));
+            });
+            setQuestions(mapped);
+          }
+        } catch (e) {
+          console.error('Error loading existing questions:', e);
+        }
         // Load intro videos for all rounds
         if (game.intro_videos && typeof game.intro_videos === 'object') {
           const videos = game.intro_videos as Record<string, string>;
@@ -275,6 +311,17 @@ const GameQuestions = () => {
 
     setSaving(true);
     try {
+      // Replace existing questions to keep data in sync
+      const { error: delError } = await deleteQuestionsByGame(gameId);
+      if (delError) {
+        console.error('Error deleting old questions:', delError);
+        toast({
+          title: 'Cảnh báo',
+          description: `Không thể làm mới bộ câu hỏi cũ. ${delError.message}`,
+          variant: 'destructive',
+        });
+        // We continue to insert; duplicates are possible if delete failed
+      }
       // Prepare all questions
       const allQuestions: Array<{
         round: RoundType;
