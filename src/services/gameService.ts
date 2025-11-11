@@ -911,13 +911,20 @@ export function createTangTocChannel(
   const channel = supabase
     .channel(channelName, { config: { broadcast: { self: true } } })
     .on('broadcast', { event: 'question:show' }, (payload) => {
-      onEvent({ type: 'show_question', payload });
+      console.log('Received question:show broadcast:', payload);
+      // Extract payload from Supabase broadcast message
+      const data = (payload as any)?.payload || payload;
+      onEvent({ type: 'show_question', payload: data });
     })
     .on('broadcast', { event: 'timer:start' }, (payload) => {
-      onEvent({ type: 'start_timer', payload });
+      console.log('Received timer:start broadcast:', payload);
+      const data = (payload as any)?.payload || payload;
+      onEvent({ type: 'start_timer', payload: data });
     })
     .on('broadcast', { event: 'timer:stop' }, (payload) => {
-      onEvent({ type: 'stop_timer', payload });
+      console.log('Received timer:stop broadcast:', payload);
+      const data = (payload as any)?.payload || payload;
+      onEvent({ type: 'stop_timer', payload: data });
     })
     .subscribe((status) => {
       console.log('TangToc channel status:', status);
@@ -932,11 +939,14 @@ export async function showTangTocQuestion(gameId: string, questionIndex: number,
   const channelName = `tangtoc:${gameId}`;
   const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
   await channel.subscribe();
+  console.log('Sending showTangTocQuestion:', { questionIndex, questionId });
   await channel.send({
     type: 'broadcast',
     event: 'question:show',
     payload: { questionIndex, questionId },
   });
+  // Wait a bit to ensure message is sent
+  await new Promise(resolve => setTimeout(resolve, 100));
   supabase.removeChannel(channel);
 }
 

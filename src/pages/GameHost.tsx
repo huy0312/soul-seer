@@ -758,6 +758,33 @@ const GameHost = () => {
                     
                     {tangTocCurrentQuestionIndex >= 0 && (
                       <>
+                        {/* Preview Card - Hiển thị câu hỏi đang được show cho người chơi */}
+                        <Card className="bg-yellow-500/10 border-yellow-400/30">
+                          <CardHeader>
+                            <CardTitle className="text-lg text-yellow-200">Câu hỏi đang hiển thị cho người chơi</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {tangTocQuestions[tangTocCurrentQuestionIndex] && (
+                              <>
+                                {tangTocQuestions[tangTocCurrentQuestionIndex].hint && (
+                                  <div className="w-full">
+                                    <img
+                                      src={tangTocQuestions[tangTocCurrentQuestionIndex].hint!}
+                                      alt={`Câu hỏi ${tangTocCurrentQuestionIndex + 1}`}
+                                      className="w-full h-auto max-h-48 object-contain rounded-lg border border-yellow-400/30"
+                                    />
+                                  </div>
+                                )}
+                                <div className="p-4 bg-white/5 rounded-lg">
+                                  <p className="text-white font-medium text-lg">
+                                    {tangTocQuestions[tangTocCurrentQuestionIndex].question_text}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                        
                         <div className="flex flex-wrap items-center gap-3">
                           <Button
                             className="bg-yellow-600 hover:bg-yellow-700"
