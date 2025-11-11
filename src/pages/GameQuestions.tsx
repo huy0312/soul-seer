@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, getAllQuestionsByGame, deleteQuestionsByGame } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, getAllQuestionsByGame, deleteQuestionsByGame, uploadQuestionImage } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft, Info, Users, FileQuestion, Shield, Clock, Zap } from 'lucide-react';
@@ -62,6 +62,10 @@ const GameQuestions = () => {
     tang_toc: [],
     ve_dich: [],
   });
+
+  // Image files for Tăng tốc questions (max 4 questions)
+  const [tangTocImages, setTangTocImages] = useState<(File | null)[]>([null, null, null, null]);
+  const [uploadingImages, setUploadingImages] = useState<boolean[]>([false, false, false, false]);
 
   // VCNV (Vuot chuong ngai vat) config state
   // VCNV config removed per new flow (slide handled externally)
@@ -142,6 +146,15 @@ const GameQuestions = () => {
 
   const addQuestion = (round: RoundType) => {
     const roundQuestions = questions[round];
+    // Limit Tăng tốc to 4 questions
+    if (round === 'tang_toc' && roundQuestions.length >= 4) {
+      toast({
+        title: 'Giới hạn',
+        description: 'Phần thi Tăng tốc chỉ có tối đa 4 câu hỏi',
+        variant: 'destructive',
+      });
+      return;
+    }
     const newQuestion: Question = {
       question_text: '',
       correct_answer: '',
@@ -201,6 +214,19 @@ const GameQuestions = () => {
     // Validate questions
     for (const round of Object.keys(questions) as RoundType[]) {
       const roundQuestions = questions[round];
+      
+      // Validate Tăng tốc must have exactly 4 questions
+      if (round === 'tang_toc') {
+        if (roundQuestions.length !== 4) {
+          toast({
+            title: 'Lỗi',
+            description: 'Phần thi Tăng tốc phải có đúng 4 câu hỏi',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+      
       for (let i = 0; i < roundQuestions.length; i++) {
         const q = roundQuestions[i];
         
@@ -218,6 +244,16 @@ const GameQuestions = () => {
           toast({
             title: 'Lỗi',
             description: `Vui lòng điền đáp án đúng cho ${roundLabels[round]} - Câu ${i + 1}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Validate Tăng tốc must have image
+        if (round === 'tang_toc' && (!q.hint || !q.hint.trim())) {
+          toast({
+            title: 'Lỗi',
+            description: `Vui lòng upload hình ảnh cho ${roundLabels[round]} - Câu ${i + 1}`,
             variant: 'destructive',
           });
           return;
@@ -624,6 +660,54 @@ const GameQuestions = () => {
                                     className="bg-white text-gray-800 min-h-[100px]"
                                   />
                                 </div>
+                                {round === 'tang_toc' && (
+                                  <div>
+                                    <Label className="text-white mb-2 block">Hình ảnh câu hỏi</Label>
+                                    <div className="space-y-2">
+                                      {question.hint && (
+                                        <div className="mb-2">
+                                          <img src={question.hint} alt={`Câu ${index + 1}`} className="max-w-full h-auto max-h-48 rounded-lg border border-white/20" />
+                                        </div>
+                                      )}
+                                      <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file || !gameId) return;
+                                          const newImages = [...tangTocImages];
+                                          newImages[index] = file;
+                                          setTangTocImages(newImages);
+                                          // Upload immediately
+                                          const newUploading = [...uploadingImages];
+                                          newUploading[index] = true;
+                                          setUploadingImages(newUploading);
+                                          const { url, error } = await uploadQuestionImage(gameId, index, file);
+                                          if (error) {
+                                            toast({
+                                              title: 'Lỗi',
+                                              description: error.message,
+                                              variant: 'destructive',
+                                            });
+                                            newUploading[index] = false;
+                                            setUploadingImages(newUploading);
+                                            return;
+                                          }
+                                          if (url) {
+                                            updateQuestion(round, index, 'hint', url);
+                                          }
+                                          newUploading[index] = false;
+                                          setUploadingImages(newUploading);
+                                        }}
+                                        disabled={uploadingImages[index]}
+                                        className="bg-white text-gray-800"
+                                      />
+                                      {uploadingImages[index] && (
+                                        <p className="text-blue-200 text-sm">Đang upload...</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                                     {round === 'khoi_dong' && (
                                       <div>
                                         <Label className="text-white mb-2 block">4 Đáp án</Label>

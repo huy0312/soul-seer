@@ -21,6 +21,10 @@ import {
   emitRoundFinished,
   createVCNVSignalChannel,
   createVCNVTimerChannel,
+  showTangTocQuestion,
+  startTangTocTimer,
+  stopTangTocTimer,
+  getQuestions,
 } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -54,6 +58,12 @@ const GameHost = () => {
   const vcnvTimerStartRef = useRef<number | null>(null);
   const vcnvTimerIntervalRef = useRef<number | null>(null);
   const [vcnvTimerRemaining, setVCNVTimerRemaining] = useState<number>(0);
+  
+  // Tăng tốc state
+  const [tangTocQuestions, setTangTocQuestions] = useState<Array<{ id: string; question_text: string; hint: string | null; order_index: number }>>([]);
+  const [tangTocCurrentQuestionIndex, setTangTocCurrentQuestionIndex] = useState<number>(-1);
+  const [tangTocAnswers, setTangTocAnswers] = useState<Array<AnswerRow & { playerName?: string }>>([]);
+  const tangTocAnswersChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -390,6 +400,119 @@ const GameHost = () => {
     );
   }, [players, vcnvQuestionId]);
 
+  // Load Tăng tốc questions
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'tang_toc') {
+      setTangTocQuestions([]);
+      setTangTocCurrentQuestionIndex(-1);
+      setTangTocAnswers([]);
+      if (tangTocAnswersChannelRef.current) {
+        supabase.removeChannel(tangTocAnswersChannelRef.current);
+        tangTocAnswersChannelRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const loadQuestions = async () => {
+      try {
+        const { questions } = await getQuestions(game.id, 'tang_toc');
+        if (!cancelled && questions) {
+          const sorted = questions.sort((a, b) => a.order_index - b.order_index);
+          setTangTocQuestions(sorted.map((q) => ({
+            id: q.id,
+            question_text: q.question_text,
+            hint: q.hint,
+            order_index: q.order_index,
+          })));
+        }
+      } catch (error) {
+        console.error('Unable to load Tăng tốc questions', error);
+      }
+    };
+
+    loadQuestions();
+    return () => {
+      cancelled = true;
+    };
+  }, [game?.id, game?.current_round]);
+
+  // Subscribe to Tăng tốc answers
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'tang_toc' || tangTocCurrentQuestionIndex < 0) {
+      if (tangTocAnswersChannelRef.current) {
+        supabase.removeChannel(tangTocAnswersChannelRef.current);
+        tangTocAnswersChannelRef.current = null;
+      }
+      return;
+    }
+
+    const currentQuestion = tangTocQuestions[tangTocCurrentQuestionIndex];
+    if (!currentQuestion) return;
+
+    let cancelled = false;
+    const channelName = `host:tangtoc_answers:${Date.now()}`;
+
+    const loadAnswersAndSubscribe = async () => {
+      try {
+        const { answers } = await getAnswersForRound(game.id, 'tang_toc');
+        if (!cancelled && answers) {
+          const mapped = answers
+            .filter((ans) => ans.question_id === currentQuestion.id)
+            .map((ans) => ({
+              ...ans,
+              playerName: players.find((p) => p.id === ans.player_id)?.name,
+            }));
+          setTangTocAnswers(mapped);
+        }
+
+        const channel = supabase
+          .channel(channelName)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'answers',
+              filter: `question_id=eq.${currentQuestion.id}`,
+            },
+            (payload) => {
+              const row = payload.new as AnswerRow;
+              if (!row) return;
+              setTangTocAnswers((prev) => {
+                const next = [...prev];
+                const idx = next.findIndex((ans) => ans.player_id === row.player_id);
+                const enriched = {
+                  ...row,
+                  playerName: players.find((p) => p.id === row.player_id)?.name,
+                };
+                if (idx >= 0) {
+                  next[idx] = enriched;
+                } else {
+                  next.push(enriched);
+                }
+                return next;
+              });
+            }
+          )
+          .subscribe();
+
+        tangTocAnswersChannelRef.current = channel;
+      } catch (error) {
+        console.error('Unable to load Tăng tốc answers', error);
+      }
+    };
+
+    loadAnswersAndSubscribe();
+    return () => {
+      cancelled = true;
+      if (tangTocAnswersChannelRef.current) {
+        supabase.removeChannel(tangTocAnswersChannelRef.current);
+        tangTocAnswersChannelRef.current = null;
+      }
+    };
+  }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
@@ -594,6 +717,140 @@ const GameHost = () => {
                         )}
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Tăng tốc Controls for Host */}
+              {game.current_round === 'tang_toc' && (
+                <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+                  <CardHeader>
+                    <CardTitle>Điều khiển phần 3 - Tăng tốc</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-3">
+                      <p className="text-blue-100 text-sm font-semibold">Chọn câu hỏi để hiển thị:</p>
+                      <div className="grid grid-cols-4 gap-3">
+                        {tangTocQuestions.map((q, idx) => (
+                          <Button
+                            key={q.id}
+                            variant={tangTocCurrentQuestionIndex === idx ? 'default' : 'outline'}
+                            className={tangTocCurrentQuestionIndex === idx ? 'bg-yellow-600 hover:bg-yellow-700' : 'border-blue-300 text-blue-200 hover:bg-blue-500/20'}
+                            onClick={async () => {
+                              setTangTocCurrentQuestionIndex(idx);
+                              setTangTocAnswers([]);
+                              try {
+                                await showTangTocQuestion(game.id, idx, q.id);
+                              } catch (error) {
+                                console.error('Unable to show question', error);
+                                toast({
+                                  title: 'Lỗi',
+                                  description: 'Không thể hiển thị câu hỏi.',
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          >
+                            Câu {idx + 1}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {tangTocCurrentQuestionIndex >= 0 && (
+                      <>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            className="bg-yellow-600 hover:bg-yellow-700"
+                            onClick={async () => {
+                              setTangTocAnswers([]);
+                              try {
+                                await startTangTocTimer(game.id, 20);
+                                playCountdownSound(20);
+                              } catch (error) {
+                                console.error('Unable to start timer', error);
+                                toast({
+                                  title: 'Lỗi',
+                                  description: 'Không thể bắt đầu đếm ngược 20s.',
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          >
+                            Bắt đầu 20s
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-blue-300 text-blue-200 hover:bg-blue-500/20"
+                            onClick={async () => {
+                              try {
+                                await stopTangTocTimer(game.id);
+                              } catch (error) {
+                                console.error('Unable to stop timer', error);
+                              }
+                            }}
+                          >
+                            Dừng
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <p className="text-blue-100 text-sm font-semibold">Kết quả câu {tangTocCurrentQuestionIndex + 1} (cập nhật realtime)</p>
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {tangTocAnswers.length === 0 ? (
+                              <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-blue-200 text-sm">
+                                Chưa có đáp án nào. Bấm "Bắt đầu 20s" để thu thập đáp án.
+                              </div>
+                            ) : (
+                              tangTocAnswers.map((answer) => (
+                                <div
+                                  key={`${answer.player_id}-${answer.id}`}
+                                  className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col gap-1"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-white">{answer.playerName || 'Ẩn danh'}</span>
+                                    <span className="text-xs text-blue-200">
+                                      {answer.response_time != null ? `${answer.response_time}s` : '—'}
+                                    </span>
+                                  </div>
+                                  <p className="text-blue-100 text-base break-words">{answer.answer_text || '(Trống)'}</p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <p className="text-blue-100 text-sm">Cộng điểm nhanh cho từng thí sinh:</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {playingPlayers.map((p) => (
+                              <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                                <span className="font-semibold">{p.name}</span>
+                                <div className="flex items-center gap-2">
+                                  {[35, 25, 15, 10].map((pts) => (
+                                    <Button
+                                      key={pts}
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700"
+                                      onClick={async () => {
+                                        const { error } = await awardPoints(p.id, pts);
+                                        if (error) {
+                                          toast({ title: 'Lỗi', description: `Không thể cộng điểm ${pts}`, variant: 'destructive' });
+                                        } else {
+                                          toast({ title: 'Đã cộng điểm', description: `+${pts} cho ${p.name}` });
+                                        }
+                                      }}
+                                    >
+                                      +{pts}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}

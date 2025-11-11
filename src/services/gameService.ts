@@ -201,6 +201,63 @@ export async function updateVCNVConfig(
 }
 
 // Upload video file to Supabase storage
+export async function uploadQuestionImage(
+  gameId: string,
+  questionIndex: number,
+  file: File
+): Promise<{ url: string | null; error: Error | null }> {
+  try {
+    // Check if user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { url: null, error: new Error('Bạn cần đăng nhập để upload hình ảnh') };
+    }
+
+    // Get file extension
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${gameId}-q${questionIndex}-${Date.now()}.${fileExt}`;
+    const filePath = fileName;
+
+    // Upload file to storage (using intro-videos bucket or create a new one)
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('intro-videos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Upload error details:', uploadError);
+      // Provide more specific error messages
+      if (uploadError.message.includes('Bucket not found')) {
+        return { url: null, error: new Error('Storage bucket "intro-videos" chưa được tạo. Vui lòng tạo bucket trong Supabase Dashboard.') };
+      }
+      if (uploadError.message.includes('new row violates row-level security')) {
+        return { url: null, error: new Error('Không có quyền upload. Vui lòng kiểm tra RLS policies.') };
+      }
+      return { url: null, error: new Error(uploadError.message || 'Lỗi khi upload hình ảnh') };
+    }
+
+    if (!uploadData) {
+      return { url: null, error: new Error('Upload thành công nhưng không nhận được dữ liệu') };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('intro-videos')
+      .getPublicUrl(filePath);
+
+    if (!urlData?.publicUrl) {
+      return { url: null, error: new Error('Không thể lấy public URL của hình ảnh') };
+    }
+
+    return { url: urlData.publicUrl, error: null };
+  } catch (error) {
+    return { url: null, error: error as Error };
+  }
+}
+
+// Upload video file to Supabase storage
 export async function uploadIntroVideo(
   gameId: string,
   file: File
@@ -841,6 +898,69 @@ export async function emitVCNVSignal(
     type: 'broadcast',
     event: 'signal:central',
     payload: { playerId, playerName },
+  });
+  supabase.removeChannel(channel);
+}
+
+// Realtime control for Tăng tốc round
+export function createTangTocChannel(
+  gameId: string,
+  onEvent: (event: { type: 'show_question' | 'start_timer' | 'stop_timer'; payload?: any }) => void
+): () => void {
+  const channelName = `tangtoc:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'question:show' }, (payload) => {
+      onEvent({ type: 'show_question', payload });
+    })
+    .on('broadcast', { event: 'timer:start' }, (payload) => {
+      onEvent({ type: 'start_timer', payload });
+    })
+    .on('broadcast', { event: 'timer:stop' }, (payload) => {
+      onEvent({ type: 'stop_timer', payload });
+    })
+    .subscribe((status) => {
+      console.log('TangToc channel status:', status);
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function showTangTocQuestion(gameId: string, questionIndex: number, questionId: string): Promise<void> {
+  const channelName = `tangtoc:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'question:show',
+    payload: { questionIndex, questionId },
+  });
+  supabase.removeChannel(channel);
+}
+
+export async function startTangTocTimer(gameId: string, durationSec: number = 20): Promise<void> {
+  const channelName = `tangtoc:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  const startedAt = Date.now();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:start',
+    payload: { durationSec, startedAt },
+  });
+  supabase.removeChannel(channel);
+}
+
+export async function stopTangTocTimer(gameId: string): Promise<void> {
+  const channelName = `tangtoc:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:stop',
+    payload: {},
   });
   supabase.removeChannel(channel);
 }
