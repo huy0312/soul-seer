@@ -24,6 +24,8 @@ import {
   Clock
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const GameCreate = () => {
   const navigate = useNavigate();
@@ -77,18 +79,19 @@ const GameCreate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-purple-900 text-white relative overflow-x-hidden">
+      <Header />
       {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Back button */}
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-blue-200 hover:text-white transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-slate-200 hover:text-white transition-colors mb-6 group"
         >
           <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
           <span>Quay lại trang chủ</span>
@@ -98,12 +101,12 @@ const GameCreate = () => {
           {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center gap-3 mb-4 bg-white/10 backdrop-blur-lg rounded-full px-8 py-4 border border-white/20 shadow-lg">
-              <Crown className="h-8 w-8 text-yellow-400 animate-pulse" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 bg-clip-text text-transparent">
+              <Crown className="h-8 w-8 text-amber-400 animate-pulse" />
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-300 via-amber-300 to-purple-300 bg-clip-text text-transparent">
                 Tạo Game Mới
               </h1>
             </div>
-            <p className="text-lg text-blue-200 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-200 max-w-2xl mx-auto">
               Tạo và quản lý cuộc thi kiến thức của riêng bạn. Mời bạn bè tham gia và bắt đầu cuộc thi!
             </p>
           </div>
@@ -112,38 +115,38 @@ const GameCreate = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-blue-300 font-bold">1</span>
+                <span className="text-slate-300 font-bold">1</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">Đăng nhập</p>
-                <p className="text-xs text-blue-200">Xác thực tài khoản</p>
+                <p className="text-xs text-slate-300">Xác thực tài khoản</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-blue-300 font-bold">2</span>
+                <span className="text-slate-300 font-bold">2</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">Nhập tên</p>
-                <p className="text-xs text-blue-200">Tên người tổ chức</p>
+                <p className="text-xs text-slate-300">Tên người tổ chức</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-blue-300 font-bold">3</span>
+                <span className="text-slate-300 font-bold">3</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">Tạo câu hỏi</p>
-                <p className="text-xs text-blue-200">Thiết lập nội dung</p>
+                <p className="text-xs text-slate-300">Thiết lập nội dung</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-400">
-                <span className="text-blue-300 font-bold">4</span>
+                <span className="text-slate-300 font-bold">4</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">Bắt đầu</p>
-                <p className="text-xs text-blue-200">Host game</p>
+                <p className="text-xs text-slate-300">Host game</p>
               </div>
             </div>
           </div>
@@ -154,12 +157,12 @@ const GameCreate = () => {
               <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-yellow-500/20 rounded-lg">
-                      <Crown className="h-6 w-6 text-yellow-400" />
+                    <div className="p-2 bg-amber-500/20 rounded-lg">
+                      <Crown className="h-6 w-6 text-amber-400" />
                     </div>
                     <div>
                       <CardTitle className="text-2xl">Thông tin người tổ chức</CardTitle>
-                      <CardDescription className="text-blue-200 mt-1">
+                      <CardDescription className="text-slate-200 mt-1">
                         Bạn sẽ là người quản lý và điều hành game này
                       </CardDescription>
                     </div>
@@ -169,23 +172,23 @@ const GameCreate = () => {
                   {authLoading ? (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                      <p className="text-blue-100 text-lg">Đang kiểm tra đăng nhập...</p>
+                      <p className="text-slate-200 text-lg">Đang kiểm tra đăng nhập...</p>
                     </div>
                   ) : !user ? (
                     <div className="space-y-6 text-center py-8">
                       <div className="flex justify-center">
-                        <div className="bg-yellow-500/20 rounded-full p-6 border-2 border-yellow-400/30">
-                          <LogIn className="h-16 w-16 text-yellow-400" />
+                        <div className="bg-amber-500/20 rounded-full p-6 border-2 border-amber-400/30">
+                          <LogIn className="h-16 w-16 text-amber-400" />
                         </div>
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold mb-3">Cần đăng nhập để tạo game</h3>
-                        <p className="text-blue-100 mb-8 text-lg">
+                        <p className="text-slate-200 mb-8 text-lg">
                           Bạn cần đăng nhập hoặc tạo tài khoản để có thể tạo và quản lý game
                         </p>
                         <Button
                           onClick={() => navigate('/auth')}
-                          className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-8 py-6 text-lg"
+                          className="bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white px-8 py-6 text-lg"
                           size="lg"
                         >
                           <LogIn className="h-6 w-6 mr-2" />
@@ -212,7 +215,7 @@ const GameCreate = () => {
                       {/* Name Input */}
                       <div className="space-y-3">
                         <label className="text-base font-semibold text-white flex items-center gap-2">
-                          <User className="h-5 w-5 text-blue-300" />
+                          <User className="h-5 w-5 text-slate-300" />
                           Tên người tổ chức
                         </label>
                         <Input
@@ -220,14 +223,14 @@ const GameCreate = () => {
                           value={playerName}
                           onChange={(e) => setPlayerName(e.target.value)}
                           placeholder="Ví dụ: Nguyễn Văn A"
-                          className="bg-white/20 border-2 border-white/30 text-white placeholder:text-white/40 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/50 h-14 text-lg transition-all"
+                          className="bg-white/20 border-2 border-white/30 text-white placeholder:text-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 h-14 text-lg transition-all"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter' && !creating && playerName.trim()) {
                               handleCreateGame();
                             }
                           }}
                         />
-                        <p className="text-xs text-blue-300 flex items-center gap-1">
+                        <p className="text-xs text-slate-300 flex items-center gap-1">
                           <Info className="h-3 w-3" />
                           Tên này sẽ hiển thị cho các thí sinh khi bạn host game
                         </p>
@@ -237,7 +240,7 @@ const GameCreate = () => {
                       <Button
                         onClick={handleCreateGame}
                         disabled={creating || !playerName.trim()}
-                        className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-bold h-14 rounded-lg shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group relative overflow-hidden text-lg"
+                        className="w-full bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-bold h-14 rounded-lg shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group relative overflow-hidden text-lg"
                         size="lg"
                       >
                         <span className="relative z-10 flex items-center justify-center gap-3">
@@ -258,9 +261,9 @@ const GameCreate = () => {
                       </Button>
 
                       {/* Next Steps Info */}
-                      <Alert className="bg-blue-500/20 border-blue-400/30">
-                        <Info className="h-5 w-5 text-blue-400" />
-                        <AlertDescription className="text-blue-200">
+                      <Alert className="bg-purple-500/20 border-purple-400/30">
+                        <Info className="h-5 w-5 text-purple-300" />
+                        <AlertDescription className="text-slate-200">
                           <p className="font-semibold mb-1">Bước tiếp theo:</p>
                           <p className="text-sm">Sau khi tạo game, bạn sẽ được chuyển đến trang tạo câu hỏi cho 4 phần thi</p>
                         </AlertDescription>
@@ -277,37 +280,37 @@ const GameCreate = () => {
               <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Info className="h-5 w-5 text-blue-300" />
+                    <Info className="h-5 w-5 text-slate-300" />
                     Thông tin nhanh
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <Users className="h-5 w-5 text-slate-300 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-white">Tối đa 4 thí sinh</p>
-                      <p className="text-xs text-blue-200">Mỗi game có thể có tối đa 4 người chơi</p>
+                      <p className="text-xs text-slate-300">Mỗi game có thể có tối đa 4 người chơi</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                    <FileQuestion className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <FileQuestion className="h-5 w-5 text-slate-300 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-white">4 phần thi</p>
-                      <p className="text-xs text-blue-200">Khởi động, Vượt chướng ngại vật, Tăng tốc, Về đích</p>
+                      <p className="text-xs text-slate-300">Khởi động, Vượt chướng ngại vật, Tăng tốc, Về đích</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                    <Shield className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <Shield className="h-5 w-5 text-slate-300 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-white">Bảo mật</p>
-                      <p className="text-xs text-blue-200">Mỗi game có mã riêng để tham gia</p>
+                      <p className="text-xs text-slate-300">Mỗi game có mã riêng để tham gia</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                    <Clock className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <Clock className="h-5 w-5 text-slate-300 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-white">Quản lý linh hoạt</p>
-                      <p className="text-xs text-blue-200">Bạn có thể điều khiển tiến trình game</p>
+                      <p className="text-xs text-slate-300">Bạn có thể điều khiển tiến trình game</p>
                     </div>
                   </div>
                 </CardContent>
@@ -317,18 +320,18 @@ const GameCreate = () => {
               <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-yellow-400" />
+                    <Zap className="h-5 w-5 text-amber-400" />
                     Cần trợ giúp?
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-blue-200 mb-4">
+                  <p className="text-sm text-slate-200 mb-4">
                     Muốn tham gia game thay vì tạo mới?
                   </p>
                   <Link to="/game/join">
                     <Button 
                       variant="outline" 
-                      className="w-full border-blue-400/50 text-blue-300 hover:bg-blue-500/20"
+                      className="w-full border-purple-400/50 text-slate-300 hover:bg-purple-500/20"
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Tham gia game
@@ -347,6 +350,7 @@ const GameCreate = () => {
           animation-delay: 1s;
         }
       `}</style>
+      <Footer />
     </div>
   );
 };
