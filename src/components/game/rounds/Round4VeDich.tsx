@@ -200,8 +200,6 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
     );
   }
 
-  const playingPlayers = players.filter((p) => !p.is_host);
-
   // Show package selection if not selected yet
   if (!selectedPackage) {
     return (

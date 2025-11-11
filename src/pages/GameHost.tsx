@@ -206,20 +206,20 @@ const GameHost = () => {
               <Card className="bg-white/10 backdrop-blur-lg border-white/20">
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <div className="space-y-2 text-sm">
-                      <p className="text-blue-200">
-                        <strong>Trạng thái:</strong> {game.status === 'playing' ? 'Đang chơi' : 'Đã kết thúc'}
-                      </p>
-                      <p className="text-blue-200">
-                        <strong>Vòng hiện tại:</strong>{' '}
-                        {game.current_round === 'khoi_dong'
-                          ? 'Khởi động'
-                          : game.current_round === 'vuot_chuong_ngai_vat'
-                            ? 'Vượt chướng ngại vật'
-                            : game.current_round === 'tang_toc'
-                              ? 'Tăng tốc'
-                              : 'Về đích'}
-                      </p>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-blue-200">
+                      <strong>Trạng thái:</strong> {game.status === 'playing' ? 'Đang chơi' : 'Đã kết thúc'}
+                    </p>
+                    <p className="text-blue-200">
+                      <strong>Vòng hiện tại:</strong>{' '}
+                      {game.current_round === 'khoi_dong'
+                        ? 'Khởi động'
+                        : game.current_round === 'vuot_chuong_ngai_vat'
+                          ? 'Vượt chướng ngại vật'
+                          : game.current_round === 'tang_toc'
+                            ? 'Tăng tốc'
+                            : 'Về đích'}
+                    </p>
                     </div>
 
                     {/* Next Round Button */}
