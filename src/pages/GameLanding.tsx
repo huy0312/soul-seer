@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Trophy, Users, Play, Sparkles, Zap, Target, Award } from 'lucide-react';
+import { Trophy, Users, Play, Sparkles, Zap, Target, Award, Mic } from 'lucide-react';
+import GameHeader from '@/components/game/GameHeader';
+import GameFooter from '@/components/game/GameFooter';
 
 const GameLanding = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white overflow-hidden relative">
+      <GameHeader />
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -14,7 +17,7 @@ const GameLanding = () => {
         <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-16">
+      <div className="relative z-10 container mx-auto px-4 py-16 pt-24">
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto text-center mb-20">
           <div className="flex items-center justify-center gap-4 mb-8 animate-fade-in">
@@ -96,7 +99,7 @@ const GameLanding = () => {
         </div>
 
         {/* How it works */}
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center mb-20">
           <h2 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
             Cách thức hoạt động
           </h2>
@@ -124,7 +127,82 @@ const GameLanding = () => {
             </div>
           </div>
         </div>
+
+        {/* MC Section */}
+        <div className="max-w-6xl mx-auto mb-20">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center gap-3 mb-4">
+              <Mic className="h-8 w-8 text-yellow-400" />
+              <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
+                MC Chương trình
+              </h2>
+            </div>
+            <p className="text-lg text-blue-200">Đội ngũ MC chuyên nghiệp và tài năng</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* MC Phúc Nguyên */}
+            <div className="group bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden">
+              <div className="relative mb-6">
+                <div className="aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                  <img
+                    src="/MC/phuc-nguyen.jpg"
+                    alt="MC Phúc Nguyên"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
+                    <p className="text-white text-sm font-medium">MC chuyên nghiệp với nhiều năm kinh nghiệm</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Phúc Nguyên
+                </h3>
+                <p className="text-blue-200">MC chính của chương trình</p>
+              </div>
+            </div>
+
+            {/* MC Linh Chi */}
+            <div className="group bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden">
+              <div className="relative mb-6">
+                <div className="aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br from-pink-500/20 to-orange-500/20">
+                  <img
+                    src="/MC/linh-chi.jpg"
+                    alt="MC Linh Chi"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white/20 backdrop-blur-md rounded-lg p-3 border border-white/30">
+                    <p className="text-white text-sm font-medium">MC trẻ trung, năng động và đầy nhiệt huyết</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
+                  Linh Chi
+                </h3>
+                <p className="text-blue-200">MC đồng hành của chương trình</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <GameFooter />
 
       <style>{`
         @keyframes fade-in {
