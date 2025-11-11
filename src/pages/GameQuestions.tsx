@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, updateVCNVConfig, getAllQuestionsByGame, deleteQuestionsByGame } from '@/services/gameService';
+import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo, getAllQuestionsByGame, deleteQuestionsByGame } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft, Info, Users, FileQuestion, Shield, Clock, Zap } from 'lucide-react';
@@ -64,14 +64,7 @@ const GameQuestions = () => {
   });
 
   // VCNV (Vuot chuong ngai vat) config state
-  const [vcnvCols, setVcnvCols] = useState<number>(8);
-  const [vcnvRows, setVcnvRows] = useState<Array<{ word: string; hint: string }>>([
-    { word: '', hint: '' },
-    { word: '', hint: '' },
-    { word: '', hint: '' },
-    { word: '', hint: '' },
-  ]);
-  const [vcnvCentral, setVcnvCentral] = useState<string>('');
+  // VCNV config removed per new flow (slide handled externally)
 
   useEffect(() => {
     if (!code) {
@@ -132,22 +125,7 @@ const GameQuestions = () => {
             ve_dich: videos.ve_dich || '',
           });
         }
-        // Load existing VCNV config if any
-        if (game.vcnv_config && typeof game.vcnv_config === 'object') {
-          try {
-            const cfg = game.vcnv_config as any;
-            if (cfg?.cols) setVcnvCols(Number(cfg.cols) || 8);
-            if (Array.isArray(cfg?.words) && cfg.words.length === 4) {
-              setVcnvRows([
-                { word: cfg.words[0] || '', hint: vcnvRows[0].hint },
-                { word: cfg.words[1] || '', hint: vcnvRows[1].hint },
-                { word: cfg.words[2] || '', hint: vcnvRows[2].hint },
-                { word: cfg.words[3] || '', hint: vcnvRows[3].hint },
-              ]);
-            }
-            if (cfg?.central) setVcnvCentral(cfg.central || '');
-          } catch {}
-        }
+        // VCNV config deprecated in UI; no loading needed
         setLoading(false);
       } catch (error) {
         toast({
@@ -285,30 +263,7 @@ const GameQuestions = () => {
       }
     }
 
-    // Additional validation for VCNV config
-    {
-      const rows = vcnvRows.map((r) => ({ word: r.word.trim(), hint: r.hint.trim() }));
-      const central = vcnvCentral.trim();
-      if (rows.some((r) => !r.word)) {
-        toast({ title: 'Lỗi', description: 'Vui lòng nhập đủ 4 từ hàng ngang cho Vượt chướng ngại vật', variant: 'destructive' });
-        return;
-      }
-      if (!central) {
-        toast({ title: 'Lỗi', description: 'Vui lòng nhập đáp án chướng ngại vật trung tâm', variant: 'destructive' });
-        return;
-      }
-      // Validate columns: all words must have exactly vcnvCols characters when removing spaces
-      const stripSpaces = (s: string) => s.replace(/\s+/g, '');
-      const invalid = rows.find((r) => stripSpaces(r.word).length !== vcnvCols);
-      if (invalid) {
-        toast({
-          title: 'Lỗi',
-          description: `Số cột đã chọn là ${vcnvCols}. Mỗi từ hàng ngang phải có đúng ${vcnvCols} ký tự (không tính khoảng trắng).`,
-          variant: 'destructive',
-        });
-        return;
-      }
-    }
+    // No VCNV validation required (handled externally)
 
     setSaving(true);
     try {
@@ -353,30 +308,7 @@ const GameQuestions = () => {
         }
       }
 
-      // Build VCNV questions from config
-      // 4 hang ngang (points 10), 1 central (points 0 - tính thưởng riêng)
-      vcnvRows.forEach((row, idx) => {
-        allQuestions.push({
-          round: 'vuot_chuong_ngai_vat',
-          question_text: row.hint || `Hàng ngang ${idx + 1}`,
-          correct_answer: row.word,
-          points: 10,
-          order_index: idx + 1,
-          question_type: 'hang_ngang',
-          hang_ngang_index: idx,
-          hint: row.hint || null,
-        });
-      });
-      allQuestions.push({
-        round: 'vuot_chuong_ngai_vat',
-        question_text: 'Chướng ngại vật trung tâm',
-        correct_answer: vcnvCentral.trim(),
-        points: 0,
-        order_index: 5,
-        question_type: 'chuong_ngai_vat',
-        hang_ngang_index: null,
-        hint: null,
-      });
+      // No auto-generation for VCNV (slide handled externally)
 
       if (allQuestions.length === 0) {
         toast({
@@ -391,23 +323,7 @@ const GameQuestions = () => {
       const { error } = await createQuestions(gameId, allQuestions);
       if (error) throw error;
 
-      // Save VCNV config to game
-      {
-        const cfg = {
-          cols: vcnvCols,
-          words: [vcnvRows[0].word.trim(), vcnvRows[1].word.trim(), vcnvRows[2].word.trim(), vcnvRows[3].word.trim()] as [string, string, string, string],
-          central: vcnvCentral.trim(),
-        };
-        const { error: cfgError } = await updateVCNVConfig(gameId, cfg);
-        if (cfgError) {
-          console.error('Error updating VCNV config:', cfgError);
-          toast({
-            title: 'Cảnh báo',
-            description: `Không thể lưu cấu hình VCNV. ${cfgError.message}`,
-            variant: 'destructive',
-          });
-        }
-      }
+      // No VCNV config persistence
 
       // Process intro videos for all rounds
       const finalIntroVideos: Record<RoundType, string | null> = {
@@ -607,66 +523,62 @@ const GameQuestions = () => {
                     {round === 'vuot_chuong_ngai_vat' ? (
                       <div className="space-y-6">
                         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                          <h4 className="font-semibold mb-2">Thiết lập lưới</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <Label className="text-white mb-2 block">Số cột</Label>
-                              <Input
-                                type="number"
-                                min={3}
-                                max={20}
-                                value={vcnvCols}
-                                onChange={(e) => setVcnvCols(Math.max(1, Math.min(30, parseInt(e.target.value || '0'))))}
-                                className="bg-white text-gray-800"
-                              />
-                              <p className="text-xs text-slate-300 mt-1">
-                                Mỗi từ hàng ngang phải có đúng {vcnvCols} ký tự (không tính khoảng trắng).
-                              </p>
+                          <h4 className="font-semibold mb-2">Phần 2 - Vượt chướng ngại vật</h4>
+                          <p className="text-blue-200">
+                            Phần thi này không cần cấu hình hàng ngang/đáp án trung tâm trong hệ thống.
+                            Bạn có thể thêm mục ghi chú (tuỳ chọn) để đánh dấu số lượt, hoặc để trống.
+                            Slide trò chơi sẽ được chiếu bên ngoài, web chỉ thu thập đáp án và thời gian.
+                          </p>
+                        </div>
+                        {questions[round].length === 0 ? (
+                          <div className="text-center py-8 bg-white/5 rounded-lg border border-white/10">
+                            <p className="text-blue-200 mb-4">Không cần tạo dữ liệu cho phần thi này. Nếu muốn, bạn có thể thêm mục ghi chú.</p>
+                            <Button
+                              onClick={() => addQuestion(round)}
+                              variant="outline"
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Thêm mục ghi chú
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {questions[round].map((question, index) => (
+                              <Card key={index} className="bg-white/5 border-white/10">
+                                <CardContent className="p-6">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h4 className="font-semibold text-lg">Mục {index + 1}</h4>
+                                    <Button
+                                      onClick={() => removeQuestion(round, index)}
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label className="text-white mb-2 block">Ghi chú (tuỳ chọn)</Label>
+                                      <Textarea
+                                        value={question.question_text}
+                                        onChange={(e) => updateQuestion(round, index, 'question_text', e.target.value)}
+                                        placeholder="Ví dụ: Vòng 1 - Ô chữ 1"
+                                        className="bg-white text-gray-800 min-h-[80px]"
+                                      />
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                            <div className="flex justify-end">
+                              <Button onClick={() => addQuestion(round)} className="bg-white/10 border border-white/20 hover:bg-white/20">
+                                <Plus className="h-4 w-4 mr-2" /> Thêm mục
+                              </Button>
                             </div>
                           </div>
-                        </div>
-                        <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                          <h4 className="font-semibold mb-4">Cấu hình 4 hàng ngang</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {vcnvRows.map((row, idx) => (
-                              <div key={idx} className="p-3 bg-white/5 rounded border border-white/10">
-                                <p className="text-sm text-slate-300 mb-2">Hàng ngang {idx + 1}</p>
-                                <Label className="text-white mb-1 block">Từ khóa</Label>
-                                <Input
-                                  value={row.word}
-                                  onChange={(e) => {
-                                    const next = [...vcnvRows];
-                                    next[idx] = { ...next[idx], word: e.target.value };
-                                    setVcnvRows(next);
-                                  }}
-                                  placeholder="Nhập từ hàng ngang"
-                                  className="bg-white text-gray-800"
-                                />
-                                <Label className="text-white mb-1 block mt-3">Gợi ý (tuỳ chọn)</Label>
-                                <Input
-                                  value={row.hint}
-                                  onChange={(e) => {
-                                    const next = [...vcnvRows];
-                                    next[idx] = { ...next[idx], hint: e.target.value };
-                                    setVcnvRows(next);
-                                  }}
-                                  placeholder="Gợi ý / mô tả cho hàng ngang"
-                                  className="bg-white text-gray-800"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                          <h4 className="font-semibold mb-2">Chướng ngại vật trung tâm</h4>
-                          <Label className="text-white mb-1 block">Đáp án chướng ngại vật</Label>
-                          <Input
-                            value={vcnvCentral}
-                            onChange={(e) => setVcnvCentral(e.target.value)}
-                            placeholder="Nhập đáp án chướng ngại vật"
-                            className="bg-white text-gray-800"
-                          />
-                        </div>
+                        )}
                     </div>
                     ) : (
                       <div className="space-y-4">
