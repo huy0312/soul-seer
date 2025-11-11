@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { joinGame, getGameByCode, getPlayers } from '@/services/gameService';
+import { joinGame, getGameByCode, getPlayers, subscribeToPlayers } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type Player = Database['public']['Tables']['players']['Row'];
 
 // Danh sách nhân vật với ảnh
 const CHARACTERS = [
@@ -43,11 +46,13 @@ const CharacterSelection = () => {
   const playerName = location.state?.playerName as string | undefined;
   const isHost = location.state?.isHost as boolean | undefined;
 
-  // Load taken avatars
+  // Load taken avatars and subscribe to real-time updates
   useEffect(() => {
-    const loadTakenAvatars = async () => {
-      if (!code) return;
+    if (!code) return;
 
+    let unsubscribePlayers: (() => void) | null = null;
+
+    const loadTakenAvatars = async () => {
       try {
         const { game, error: gameError } = await getGameByCode(code);
         if (gameError || !game) {
@@ -60,14 +65,24 @@ const CharacterSelection = () => {
         }
 
         // Collect all taken avatar URLs
-        const taken = new Set<string>();
-        players.forEach((player) => {
-          if (player.avatar_url) {
-            taken.add(player.avatar_url);
-          }
-        });
+        const updateTakenAvatars = (playersList: Player[]) => {
+          const taken = new Set<string>();
+          playersList.forEach((player) => {
+            if (player.avatar_url) {
+              taken.add(player.avatar_url);
+            }
+          });
+          setTakenAvatars(taken);
+        };
 
-        setTakenAvatars(taken);
+        updateTakenAvatars(players);
+        setLoading(false);
+
+        // Subscribe to real-time player changes
+        unsubscribePlayers = subscribeToPlayers(game.id, (updatedPlayers) => {
+          console.log('Players updated in character selection:', updatedPlayers);
+          updateTakenAvatars(updatedPlayers);
+        });
       } catch (error) {
         console.error('Error loading taken avatars:', error);
         toast({
@@ -75,12 +90,17 @@ const CharacterSelection = () => {
           description: 'Không thể tải danh sách nhân vật đã chọn',
           variant: 'destructive',
         });
-      } finally {
         setLoading(false);
       }
     };
 
     loadTakenAvatars();
+
+    return () => {
+      if (unsubscribePlayers) {
+        unsubscribePlayers();
+      }
+    };
   }, [code]);
 
   // Nếu không có tên, quay lại trang chủ
@@ -115,34 +135,60 @@ const CharacterSelection = () => {
       return;
     }
 
-    // Double check if character is still available
+    // Double check if character is still available (realtime check)
     if (takenAvatars.has(character.image)) {
       toast({
-        title: 'Lỗi',
+        title: 'Nhân vật đã được chọn',
         description: 'Nhân vật này đã được chọn bởi người chơi khác. Vui lòng chọn nhân vật khác.',
         variant: 'destructive',
       });
-      // Reload taken avatars
-      const { game, error: gameError } = await getGameByCode(code!);
-      if (!gameError && game) {
-        const { players } = await getPlayers(game.id);
-        if (players) {
-          const taken = new Set<string>();
-          players.forEach((player) => {
-            if (player.avatar_url) {
-              taken.add(player.avatar_url);
-            }
-          });
-          setTakenAvatars(taken);
-        }
-      }
+      setSelectedCharacter(null); // Reset selection
       return;
     }
 
     setJoining(true);
     try {
+      // Final check before joining - fetch latest players
+      const { game, error: gameError } = await getGameByCode(code!);
+      if (gameError || !game) {
+        throw gameError || new Error('Game not found');
+      }
+
+      const { players: latestPlayers } = await getPlayers(game.id);
+      if (latestPlayers) {
+        const latestTaken = new Set<string>();
+        latestPlayers.forEach((player) => {
+          if (player.avatar_url) {
+            latestTaken.add(player.avatar_url);
+          }
+        });
+
+        // Check again with latest data
+        if (latestTaken.has(character.image)) {
+          setTakenAvatars(latestTaken);
+          setSelectedCharacter(null);
+          setJoining(false);
+          toast({
+            title: 'Nhân vật đã được chọn',
+            description: 'Nhân vật này vừa được chọn bởi người chơi khác. Vui lòng chọn nhân vật khác.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
       const { player, error } = await joinGame(code!, playerName!, false, character.image);
       if (error || !player) {
+        // Check if error is due to character already taken
+        if (error?.message?.includes('already') || error?.message?.includes('taken')) {
+          setSelectedCharacter(null);
+          toast({
+            title: 'Nhân vật đã được chọn',
+            description: 'Nhân vật này đã được chọn bởi người chơi khác. Vui lòng chọn nhân vật khác.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw error || new Error('Không thể tham gia game');
       }
 
