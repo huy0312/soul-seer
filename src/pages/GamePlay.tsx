@@ -230,13 +230,23 @@ const GamePlay = () => {
 
   // Listen for round finished broadcast: send players back to lobby to wait for host
   useEffect(() => {
-    if (!game?.id) return;
+    if (!game?.id || !game?.current_round) return;
+    const currentRound = game.current_round;
     const unsubscribe = createRoundEventChannel(game.id, (evt) => {
       if (evt.type === 'round_finished') {
-        // Only navigate to lobby if the finished round equals the round we're currently in.
-        // This prevents bouncing back to lobby due to late events from a previous round.
-        if (evt.round && game?.current_round === evt.round) {
+        // Only navigate to lobby if:
+        // 1. The finished round equals the round we're currently playing
+        // 2. We're actually on the play page (not already navigating)
+        // This prevents bouncing back to lobby due to late events from a previous round
+        if (evt.round && evt.round === currentRound && window.location.pathname.includes('/play/')) {
+          console.log('Round finished event received for current round, navigating to lobby:', evt.round);
           navigate(`/game/lobby/${code}`);
+        } else {
+          console.log('Round finished event ignored:', {
+            eventRound: evt.round,
+            currentRound: currentRound,
+            pathname: window.location.pathname,
+          });
         }
       }
     });

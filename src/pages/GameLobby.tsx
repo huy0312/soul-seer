@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,13 +33,17 @@ const GameLobby = () => {
   const [checkingQuestions, setCheckingQuestions] = useState(true);
   const [isHost, setIsHost] = useState(false);
   const [prevRound, setPrevRound] = useState<string | null>(null);
-  const [navigated, setNavigated] = useState(false);
+  const navigatedRef = useRef(false);
+  const currentRoundRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!code) {
       navigate('/');
       return;
     }
+
+    // Reset navigation flag when entering lobby (allows navigation to next round)
+    navigatedRef.current = false;
 
     let unsubscribeGame: (() => void) | null = null;
     let unsubscribePlayers: (() => void) | null = null;
@@ -54,6 +58,10 @@ const GameLobby = () => {
         }
 
         setGame(gameData);
+        // Initialize prevRound and ref with current round to prevent false navigation triggers
+        const initialRound = (gameData as any).current_round || null;
+        setPrevRound(initialRound);
+        currentRoundRef.current = initialRound;
 
         const refreshPlayers = async () => {
           const { players: playersData, error: playersError } = await getPlayers(gameData.id);
@@ -90,27 +98,40 @@ const GameLobby = () => {
 
         // Subscribe to game changes - realtime update for all players
         unsubscribeGame = subscribeToGame(gameData.id, (updatedGame) => {
-          console.log('Game status changed:', updatedGame.status);
+          console.log('Game status changed:', updatedGame.status, 'Round:', updatedGame.current_round);
+          const newRound = (updatedGame as any).current_round;
+          const oldRound = currentRoundRef.current;
+          
           setGame(updatedGame);
+          
           // Navigate non-hosts to intro whenever a new round begins while in lobby
-          if (updatedGame.status === 'playing' && !navigated) {
-            const round = (updatedGame as any).current_round;
+          // Only navigate if we're actually in the lobby page (not already navigating)
+          if (updatedGame.status === 'playing' && !navigatedRef.current && window.location.pathname.includes('/lobby/')) {
             if (!isHost) {
-              // If round changed compared to the last seen value, go to intro
-              if (round && round !== prevRound) {
-                setPrevRound(round);
-                setNavigated(true);
+              // Only navigate if round actually changed compared to what we last saw
+              if (newRound && newRound !== oldRound) {
+                console.log('Round changed in lobby, navigating to intro. Old:', oldRound, 'New:', newRound);
+                currentRoundRef.current = newRound;
+                setPrevRound(newRound);
+                navigatedRef.current = true;
                 setTimeout(() => {
-                  navigate(`/game/intro/${code}`);
+                  if (window.location.pathname.includes('/lobby/')) {
+                    navigate(`/game/intro/${code}`);
+                  }
                 }, 100);
               }
             } else {
               // Host should be on host dashboard
-              setNavigated(true);
+              navigatedRef.current = true;
               setTimeout(() => {
-                navigate(`/game/host/${code}`);
+                if (window.location.pathname.includes('/lobby/')) {
+                  navigate(`/game/host/${code}`);
+                }
               }, 100);
             }
+          } else {
+            // Update ref even if we don't navigate
+            currentRoundRef.current = newRound;
           }
         });
 
@@ -132,15 +153,25 @@ const GameLobby = () => {
 
         // Polling fallback for game status - check every 500ms for faster response
         gameStatusInterval = setInterval(async () => {
+          // Only check if we're still in lobby and haven't navigated yet
+          if (navigatedRef.current || !window.location.pathname.includes('/lobby/')) {
+            return;
+          }
           const { game: currentGame } = await getGameByCode(code);
-          if (currentGame && currentGame.status === 'playing' && gameData.status === 'waiting') {
-            // Update local state first
-            setGame(currentGame);
-            // Navigate based on host status
-            if (isHost) {
-              navigate(`/game/host/${code}`);
-            } else {
-              navigate(`/game/intro/${code}`);
+          if (currentGame && currentGame.status === 'playing') {
+            // Only navigate if round actually changed (not just status update)
+            const currentRound = (currentGame as any).current_round;
+            if (currentRound && currentRound !== prevRound && currentRound !== gameData.current_round) {
+              // Update local state first
+              setGame(currentGame);
+              setPrevRound(currentRound);
+              navigatedRef.current = true;
+              // Navigate based on host status
+              if (isHost) {
+                navigate(`/game/host/${code}`);
+              } else {
+                navigate(`/game/intro/${code}`);
+              }
             }
           }
         }, 500);
@@ -163,8 +194,10 @@ const GameLobby = () => {
       if (unsubscribePlayers) unsubscribePlayers();
       if (pollingInterval) clearInterval(pollingInterval);
       if (gameStatusInterval) clearInterval(gameStatusInterval);
+      // Reset navigation flag when component unmounts
+      navigatedRef.current = false;
     };
-  }, [code, navigate]);
+  }, [code, navigate, isHost, prevRound]);
 
   const handleStartGame = async () => {
     const playingPlayers = players.filter((p) => !p.is_host);

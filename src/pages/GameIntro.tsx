@@ -61,18 +61,40 @@ const GameIntro = () => {
         }
 
         // If game is already playing, redirect non-host players to play page
-        if (gameData.status === 'playing') {
-          navigate(`/game/play/${code}`);
+        // But only if we're actually on the intro page (not already navigating)
+        // This happens when player comes from lobby after host starts a new round
+        if (gameData.status === 'playing' && window.location.pathname.includes('/intro/')) {
+          // Small delay to ensure we're ready, then go to play page
+          // The play page will handle showing intro video if needed
+          setTimeout(() => {
+            if (window.location.pathname.includes('/intro/')) {
+              console.log('GameIntro: Game is playing, redirecting to play page');
+              navigate(`/game/play/${code}`);
+            }
+          }, 100);
           return;
         }
 
         // Subscribe to game changes - if game starts, redirect non-host players
         // Note: isHost is checked before subscription, so we use storedIsHost
+        let hasNavigated = false;
         const unsubscribe = subscribeToGame(gameData.id, (updatedGame) => {
           // Double check host status from localStorage
           const currentIsHost = localStorage.getItem(`is_host_${code}`) === 'true';
-          if (updatedGame.status === 'playing' && !currentIsHost) {
-            navigate(`/game/play/${code}`);
+          // Only navigate if:
+          // 1. Game status is playing
+          // 2. We're not host
+          // 3. We haven't navigated yet
+          // 4. We're still on intro page
+          // This handles the case when host starts a new round while players are in lobby
+          if (updatedGame.status === 'playing' && !currentIsHost && !hasNavigated && window.location.pathname.includes('/intro/')) {
+            hasNavigated = true;
+            console.log('GameIntro: Game started, redirecting to play page');
+            setTimeout(() => {
+              if (window.location.pathname.includes('/intro/')) {
+                navigate(`/game/play/${code}`);
+              }
+            }, 100);
           }
         });
 
