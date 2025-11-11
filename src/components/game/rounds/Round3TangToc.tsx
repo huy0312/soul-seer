@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import type { Database } from '@/integrations/supabase/types';
 import { Zap, Clock } from 'lucide-react';
-import { submitAnswer, createTangTocChannel } from '@/services/gameService';
+import { submitAnswer, createTangTocChannel, getQuestions } from '@/services/gameService';
 import { playCountdownSound } from '@/utils/audio';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -45,8 +45,34 @@ export const Round3TangToc: React.FC<Round3TangTocProps> = ({
     const unsubscribe = createTangTocChannel(gameId, (evt) => {
       if (evt.type === 'show_question') {
         const { questionIndex, questionId } = evt.payload || {};
-        const question = questions.find((q) => q.id === questionId);
-        if (question) {
+        console.log('Received show_question event:', { questionIndex, questionId, questionsCount: questions.length });
+        
+        // Try to find question in current questions array
+        let question = questions.find((q) => q.id === questionId);
+        
+        // If not found, fetch from database
+        if (!question) {
+          console.log('Question not in array, fetching from database...');
+          getQuestions(gameId, 'tang_toc').then(({ questions: fetchedQuestions, error }) => {
+            if (!error && fetchedQuestions) {
+              const found = fetchedQuestions.find((q) => q.id === questionId);
+              if (found) {
+                setCurrentQuestion(found);
+                setCurrentQuestionIndex(questionIndex);
+                setAnswer('');
+                setSubmitted(false);
+                setTimerActive(false);
+                setRemaining(20);
+                if (timerRef.current) {
+                  window.clearInterval(timerRef.current);
+                  timerRef.current = null;
+                }
+              } else {
+                console.error('Question not found in database:', questionId);
+              }
+            }
+          });
+        } else {
           setCurrentQuestion(question);
           setCurrentQuestionIndex(questionIndex);
           setAnswer('');
