@@ -5,13 +5,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import GameHome from "./pages/GameHome";
+import GameLanding from "./pages/GameLanding";
 import GameLobby from "./pages/GameLobby";
 import GameQuestions from "./pages/GameQuestions";
 import GameRoom from "./pages/GameRoom";
 import GameHost from "./pages/GameHost";
 import GameResults from "./pages/GameResults";
-import GameJoin from "./pages/GameJoin";
+import GameJoinNew from "./pages/GameJoinNew";
+import GameCreate from "./pages/GameCreate";
 import GameIntro from "./pages/GameIntro";
 import GamePlay from "./pages/GamePlay";
 import Auth from "./pages/Auth";
@@ -28,14 +29,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<GameHome />} />
+            <Route path="/" element={<GameLanding />} />
+            <Route path="/game/join/:code" element={<GameJoinNew />} />
+            <Route path="/game/join" element={<GameJoinNew />} />
+            <Route path="/game/create" element={<GameCreate />} />
             <Route path="/game/lobby/:code" element={<GameLobby />} />
             <Route path="/game/questions/:code" element={<GameQuestions />} />
             <Route path="/game/room/:code" element={<GameRoom />} />
             <Route path="/game/host/:code" element={<GameHost />} />
             <Route path="/game/results/:code" element={<GameResults />} />
-            <Route path="/game/join/:code" element={<GameJoin />} />
-            <Route path="/game/join" element={<GameJoin />} />
             <Route path="/game/intro/:code" element={<GameIntro />} />
             <Route path="/game/play/:code" element={<GamePlay />} />
             <Route path="/game/character/:code" element={<CharacterSelection />} />
