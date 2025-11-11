@@ -8,28 +8,28 @@ import { Link } from 'react-router-dom';
 const HeroSection = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const tarotImages = [
+  const olympiaImages = [
     {
-      src: "/lovable-uploads/6eca27cb-b928-4990-8a08-e98c20ce32df.png",
-      alt: "Arcana Pulse",
-      title: "Arcana Pulse"
+      src: "/MC/linh-chi.jpg",
+      alt: "MC Linh Chi",
+      title: "Đường lên đỉnh Olympia"
     },
     {
-      src: "/lovable-uploads/5b8a4aad-301c-491c-9474-ebbce98faf73.png",
-      alt: "Cosmic Whispers", 
-      title: "Cosmic Whispers"
+      src: "/MC/phuc-nguyen.jpg",
+      alt: "MC Phúc Nguyên",
+      title: "Đường lên đỉnh Olympia"
     },
     {
-      src: "/lovable-uploads/abaade9c-fb7d-41b1-9d08-e0e58a6748ce.png",
-      alt: "Lunar Veil",
-      title: "Lunar Veil"
+      src: "/lovable-uploads/Logo.png",
+      alt: "Olympia Logo",
+      title: "Đường lên đỉnh Olympia"
     }
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => 
-        (prevIndex + 1) % tarotImages.length
+        (prevIndex + 1) % olympiaImages.length
       );
     }, 3000);
 
@@ -67,14 +67,14 @@ const HeroSection = () => {
               <div className="space-y-6">
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white font-serif leading-tight">
                   <span className="bg-gradient-to-r from-purple-300 to-amber-300 bg-clip-text text-transparent text-glow">
-                    Soul Seer
+                    Đường lên đỉnh Olympia
                   </span>
                 </h1>
                 <p className="text-xl md:text-2xl text-purple-200 font-light">
-                  Khám phá tương lai qua lá bài tarot
+                  Tạo, tham gia và host cuộc thi kiến thức theo 4 phần thi
                 </p>
                 <p className="text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0">
-                  Với công nghệ AI tiên tiến và kiến thức cổ xưa về tarot, chúng tôi mang đến cho bạn những dự đoán chính xác và sâu sắc về cuộc sống.
+                  Khởi động, Vượt chướng ngại vật, Tăng tốc, Về đích. Mời bạn bè, quản lý câu hỏi, video intro, điểm số và bảng xếp hạng.
                 </p>
               </div>
 
@@ -85,28 +85,27 @@ const HeroSection = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link to="/tarot-reading">
+                <Link to="/game/create">
                   <Button 
                     size="lg" 
                     className="bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-semibold px-8 py-4 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Xem Tarot Ngay
+                    Tạo Game
                   </Button>
                 </Link>
-                <Link to="/ai-reading">
+                <Link to="/game/join">
                   <Button 
                     variant="outline" 
                     size="lg"
                     className="border-2 border-purple-400 text-purple-200 hover:bg-purple-400 hover:text-white font-semibold px-8 py-4 rounded-full text-lg transition-all duration-300 transform hover:scale-105"
                   >
-                    Tư Vấn AI
+                    Tham Gia
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Right side - Tarot Cards */}
+            {/* Right side - Visuals */}
             <div className="flex justify-center lg:justify-end">
               <div className="relative">
                 {/* Main card display */}
@@ -114,13 +113,13 @@ const HeroSection = () => {
                   <CardContent className="p-0 h-full">
                     <div className="relative h-full">
                       <img 
-                        src={tarotImages[currentImageIndex].src}
-                        alt={tarotImages[currentImageIndex].alt}
+                        src={olympiaImages[currentImageIndex].src}
+                        alt={olympiaImages[currentImageIndex].alt}
                         className="w-full h-full object-cover transition-opacity duration-500"
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
                         <h3 className="text-white text-xl font-bold text-center">
-                          {tarotImages[currentImageIndex].title}
+                          {olympiaImages[currentImageIndex].title}
                         </h3>
                       </div>
                     </div>

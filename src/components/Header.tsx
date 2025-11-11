@@ -29,11 +29,11 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <img 
               src="/lovable-uploads/Logo.png" 
-              alt="Soul Seer Logo" 
+              alt="Olympia Logo" 
               className="w-10 h-10 object-contain rounded-full"
             />
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-              Soul Seer
+              Olympia
             </span>
           </Link>
 
@@ -48,20 +48,20 @@ const Header = () => {
               Trang Chủ
             </Link>
             <Link 
-              to="/tarot-reading" 
+              to="/game/create" 
               className={`text-purple-200 hover:text-purple-100 transition-colors ${
-                isActive('/tarot-reading') ? 'text-purple-100 font-semibold' : ''
+                isActive('/game/create') ? 'text-purple-100 font-semibold' : ''
               }`}
             >
-              Bói Bài
+              Tạo Game
             </Link>
             <Link 
-              to="/ai-reading" 
+              to="/game/join" 
               className={`text-purple-200 hover:text-purple-100 transition-colors ${
-                isActive('/ai-reading') ? 'text-purple-100 font-semibold' : ''
+                isActive('/game/join') ? 'text-purple-100 font-semibold' : ''
               }`}
             >
-              Bói AI
+              Tham Gia
             </Link>
             
             {user ? (
@@ -106,9 +106,9 @@ const Header = () => {
                     Đăng nhập
                   </Button>
                 </Link>
-                <Link to="/tarot-reading">
+                <Link to="/game/create">
                   <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full">
-                    Bói Miễn Phí
+                    Tạo Game
                   </Button>
                 </Link>
               </div>
@@ -136,18 +136,18 @@ const Header = () => {
                 Trang Chủ
               </Link>
               <Link 
-                to="/tarot-reading" 
+                to="/game/create" 
                 className="text-purple-200 hover:text-purple-100 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Bói Bài
+                Tạo Game
               </Link>
               <Link 
-                to="/ai-reading" 
+                to="/game/join" 
                 className="text-purple-200 hover:text-purple-100 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Bói AI
+                Tham Gia
               </Link>
               
               {user ? (
@@ -187,9 +187,9 @@ const Header = () => {
                       Đăng nhập
                     </Button>
                   </Link>
-                  <Link to="/tarot-reading" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/game/create" onClick={() => setIsMenuOpen(false)}>
                     <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-2 rounded-full w-full">
-                      Bói Miễn Phí
+                      Tạo Game
                     </Button>
                   </Link>
                 </div>
