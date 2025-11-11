@@ -807,6 +807,44 @@ export async function stopVCNVTimer(gameId: string): Promise<void> {
   supabase.removeChannel(channel);
 }
 
+// Signal when a player claims to have solved the central obstacle
+export function createVCNVSignalChannel(
+  gameId: string,
+  onSignal: (event: { playerId: string; playerName?: string }) => void
+): () => void {
+  const channelName = `vcnv_signal:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'signal:central' }, (payload) => {
+      const data = (payload as any)?.payload || {};
+      if (data?.playerId) {
+        onSignal({ playerId: data.playerId, playerName: data.playerName });
+      }
+    })
+    .subscribe((status) => {
+      console.log('VCNV signal channel status:', status);
+    });
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function emitVCNVSignal(
+  gameId: string,
+  playerId: string,
+  playerName?: string
+): Promise<void> {
+  const channelName = `vcnv_signal:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'signal:central',
+    payload: { playerId, playerName },
+  });
+  supabase.removeChannel(channel);
+}
+
 export async function getVCNVState(gameId: string): Promise<{ state: { hang_ngang_index: number; is_revealed: boolean }[]; error: Error | null }> {
   try {
     const { data, error } = await supabase

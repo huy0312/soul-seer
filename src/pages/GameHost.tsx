@@ -13,7 +13,7 @@ import {
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
-import { startVCNVTimer, stopVCNVTimer, awardPoints, emitRoundFinished } from '@/services/gameService';
+import { startVCNVTimer, stopVCNVTimer, awardPoints, emitRoundFinished, createVCNVSignalChannel } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ const GameHost = () => {
   const [round1Monitoring, setRound1Monitoring] = useState(false);
   const [round1QuestionIds, setRound1QuestionIds] = useState<string[]>([]);
   const [round1Announced, setRound1Announced] = useState(false);
+  const [vcnvSignal, setVCNVSignal] = useState<{ playerId: string; playerName?: string } | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -182,6 +183,23 @@ const GameHost = () => {
     };
   }, [game?.id, game?.current_round, players, round1Monitoring]);
 
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'vuot_chuong_ngai_vat') {
+      setVCNVSignal(null);
+      return;
+    }
+    const unsubscribe = createVCNVSignalChannel(game.id, (payload) => {
+      setVCNVSignal(payload);
+      toast({
+        title: 'Tín hiệu chướng ngại vật!',
+        description: `${payload.playerName || 'Một thí sinh'} báo đã tìm ra đáp án trung tâm.`,
+      });
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [game?.id, game?.current_round]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
@@ -285,6 +303,11 @@ const GameHost = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {vcnvSignal && (
+                      <div className="p-4 rounded-lg border border-yellow-400/40 bg-yellow-500/20 text-yellow-100 font-semibold">
+                        🚨 {vcnvSignal.playerName || 'Một thí sinh'} báo đã tìm ra chướng ngại vật!
+                      </div>
+                    )}
                     <div className="flex items-center gap-3">
                       <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={() => startVCNVTimer(game.id, 10)}>
                         Bắt đầu 10s

@@ -300,11 +300,10 @@ const GamePlay = () => {
   };
 
   const handleRoundComplete = async () => {
-    // Round is complete, but don't auto-advance
-    // Host will manually advance to next round via host dashboard
-    // Players will see the result modal and wait for host to proceed
-    // Real-time subscription will handle round change when host advances
-    console.log('Round completed, waiting for host to advance to next round');
+    // Immediately return players to lobby to wait for next round (per requirement)
+    if (code) {
+      navigate(`/game/lobby/${code}`);
+    }
   };
 
   if (loading) {

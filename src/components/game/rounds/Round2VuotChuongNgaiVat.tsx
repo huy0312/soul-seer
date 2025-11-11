@@ -7,7 +7,7 @@ import { WordPuzzle } from '@/components/game/WordPuzzle';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound, createVCNVTimerChannel } from '@/services/gameService';
+import { getVCNVState, revealHangNgang, awardPoints, getGameById, getAnswersForRound, createVCNVTimerChannel, emitVCNVSignal } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import VCNVBoard from '@/components/game/VCNVBoard';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -56,6 +56,7 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const durationRef = useRef<number>(10);
+  const [signalSent, setSignalSent] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? playerAnswers.get(currentQuestion.id) : null;
@@ -274,9 +275,11 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
         <p className="text-blue-200">
           Slide tìm chữ sẽ hiển thị trên bảng. Bạn có 10 giây để nhập đáp án. Thời gian làm bài sẽ được ghi lại.
         </p>
-        <div className="mt-3 inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-400">
-          <span className="text-blue-100">Thời gian còn lại:</span>
-          <span className="text-2xl font-bold text-white tabular-nums">{timerActive ? `${remaining}s` : 'Chờ bắt đầu...'}</span>
+        <div className="mt-5 inline-flex items-center gap-4 px-6 py-3 rounded-xl bg-blue-500/30 border border-blue-400 shadow-lg">
+          <span className="text-blue-100 text-lg">Thời gian còn lại:</span>
+          <span className="text-4xl font-extrabold text-white tabular-nums tracking-wide">
+            {timerActive ? `${remaining}s` : 'Chờ bắt đầu...'}
+          </span>
         </div>
       </div>
 
@@ -337,16 +340,45 @@ export const Round2VuotChuongNgaiVat: React.FC<Round2VuotChuongNgaiVatProps> = (
                       className="w-full px-4 py-2 rounded-lg bg-white text-gray-800 text-lg"
                       disabled={submitting || !timerActive || remaining <= 0}
                     />
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={submitting || !answer.trim() || !timerActive || remaining <= 0}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {submitting ? 'Đang gửi...' : 'Gửi câu trả lời'}
-                    </Button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={submitting || !answer.trim() || !timerActive || remaining <= 0}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {submitting ? 'Đang gửi...' : 'Gửi câu trả lời'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          if (signalSent || !timerActive) return;
+                          try {
+                            const me = players.find((p) => p.id === currentPlayerId);
+                            await emitVCNVSignal(gameId, currentPlayerId, me?.name || undefined);
+                            setSignalSent(true);
+                            toast({
+                              title: 'Đã báo tín hiệu',
+                              description: 'Người tổ chức đã nhận được tín hiệu bạn tìm ra chướng ngại vật!',
+                            });
+                          } catch (error) {
+                            console.error('Error emitting VCNV signal:', error);
+                            toast({
+                              title: 'Lỗi',
+                              description: 'Không thể gửi tín hiệu, thử lại nhé.',
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                        disabled={signalSent || !timerActive}
+                        className="w-full border-yellow-400/70 text-yellow-200 hover:bg-yellow-500/20"
+                        size="lg"
+                      >
+                        {signalSent ? 'Đã báo tín hiệu' : 'Báo tín hiệu chướng ngại vật'}
+                      </Button>
+                    </div>
                     <p className="text-xs text-blue-200">
-                      Thời gian sẽ được ghi lại tự động khi bạn gửi.
+                      Thời gian sẽ được ghi lại tự động khi bạn gửi. Dùng nút báo tín hiệu khi bạn nghĩ đã tìm ra chướng ngại vật.
                     </p>
                   </div>
                 </div>
