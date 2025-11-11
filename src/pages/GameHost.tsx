@@ -225,6 +225,8 @@ const GameHost = () => {
 
     if (currentIndex < roundOrder.length - 1) {
       try {
+        // Notify all players to return to lobby before moving to the next round
+        await emitRoundFinished(game.id, game.current_round as any).catch(() => {});
         const { error } = await nextRound(game.id, game.current_round);
         if (error) throw error;
 

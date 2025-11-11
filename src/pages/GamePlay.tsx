@@ -231,8 +231,8 @@ const GamePlay = () => {
   useEffect(() => {
     if (!game?.id) return;
     const unsubscribe = createRoundEventChannel(game.id, (evt) => {
-      if (evt.type === 'round_finished' && evt.round === 'khoi_dong') {
-        // Players return to lobby to wait for round 2
+      if (evt.type === 'round_finished') {
+        // On any round finished, send players back to lobby to wait for host
         navigate(`/game/lobby/${code}`);
       }
     });

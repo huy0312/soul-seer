@@ -876,27 +876,27 @@ export async function revealHangNgang(gameId: string, index: number): Promise<{ 
 
 export async function awardPoints(playerId: string, points: number): Promise<{ error: Error | null }> {
   try {
-    const { error } = await supabase.rpc('increment_player_score', { p_player_id: playerId, p_delta: points });
-    if (error) {
-      // Fallback: manual update if RPC not available
-      const { error: updError } = await supabase
-        .from('players')
-        .update({ score: (supabase as any).rpc ? undefined : undefined })
-        .eq('id', playerId);
-      if (updError) throw updError;
-    }
-    return { error: null };
-  } catch (error) {
-    // As a last resort, read current score and set
-    try {
-      const { data } = await supabase.from('players').select('score').eq('id', playerId).single();
-      const current = data?.score ?? 0;
-      const { error: setError } = await supabase.from('players').update({ score: current + points }).eq('id', playerId);
-      if (setError) throw setError;
+    // Preferred: server-side RPC if available
+    const { error: rpcError } = await supabase.rpc('increment_player_score', { p_player_id: playerId, p_delta: points });
+    if (!rpcError) {
       return { error: null };
-    } catch (e) {
-      return { error: e as Error };
     }
+    // Fallback: read-modify-write
+    const { data: playerData, error: readError } = await supabase
+      .from('players')
+      .select('score')
+      .eq('id', playerId)
+      .single();
+    if (readError) throw readError;
+    const currentScore = playerData?.score ?? 0;
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ score: currentScore + points })
+      .eq('id', playerId);
+    if (updateError) throw updateError;
+    return { error: null };
+  } catch (e) {
+    return { error: e as Error };
   }
 }
 
