@@ -9,12 +9,12 @@ import type { Database } from '@/integrations/supabase/types';
 
 type Player = Database['public']['Tables']['players']['Row'];
 
-// Danh sách nhân vật với ảnh
+// Danh sách nhân vật với ảnh (24 nhân vật)
 const CHARACTERS = [
   {
     id: 'character1',
     name: 'Nhân vật 1',
-    image: '/characters/character1.png', // Đường dẫn ảnh trong public folder
+    image: '/characters/character1.png',
   },
   {
     id: 'character2',
@@ -30,6 +30,106 @@ const CHARACTERS = [
     id: 'character4',
     name: 'Nhân vật 4',
     image: '/characters/character4.png',
+  },
+  {
+    id: 'character5',
+    name: 'Nhân vật 5',
+    image: '/characters/character5.png',
+  },
+  {
+    id: 'character6',
+    name: 'Nhân vật 6',
+    image: '/characters/character6.png',
+  },
+  {
+    id: 'character7',
+    name: 'Nhân vật 7',
+    image: '/characters/character7.png',
+  },
+  {
+    id: 'character8',
+    name: 'Nhân vật 8',
+    image: '/characters/character8.png',
+  },
+  {
+    id: 'character9',
+    name: 'Nhân vật 9',
+    image: '/characters/character9.png',
+  },
+  {
+    id: 'character10',
+    name: 'Nhân vật 10',
+    image: '/characters/character10.png',
+  },
+  {
+    id: 'character11',
+    name: 'Nhân vật 11',
+    image: '/characters/character11.png',
+  },
+  {
+    id: 'character12',
+    name: 'Nhân vật 12',
+    image: '/characters/character12.png',
+  },
+  {
+    id: 'character13',
+    name: 'Nhân vật 13',
+    image: '/characters/character13.png',
+  },
+  {
+    id: 'character14',
+    name: 'Nhân vật 14',
+    image: '/characters/character14.png',
+  },
+  {
+    id: 'character15',
+    name: 'Nhân vật 15',
+    image: '/characters/character15.png',
+  },
+  {
+    id: 'character16',
+    name: 'Nhân vật 16',
+    image: '/characters/character16.png',
+  },
+  {
+    id: 'character17',
+    name: 'Nhân vật 17',
+    image: '/characters/character17.png',
+  },
+  {
+    id: 'character18',
+    name: 'Nhân vật 18',
+    image: '/characters/character18.png',
+  },
+  {
+    id: 'character19',
+    name: 'Nhân vật 19',
+    image: '/characters/character19.png',
+  },
+  {
+    id: 'character20',
+    name: 'Nhân vật 20',
+    image: '/characters/character20.png',
+  },
+  {
+    id: 'character21',
+    name: 'Nhân vật 21',
+    image: '/characters/character21.png',
+  },
+  {
+    id: 'character22',
+    name: 'Nhân vật 22',
+    image: '/characters/character22.png',
+  },
+  {
+    id: 'character23',
+    name: 'Nhân vật 23',
+    image: '/characters/character23.png',
+  },
+  {
+    id: 'character24',
+    name: 'Nhân vật 24',
+    image: '/characters/character24.png',
   },
 ];
 
@@ -228,6 +328,9 @@ const CharacterSelection = () => {
               <p className="text-center text-blue-200 text-sm mt-2">
                 Hãy chọn một nhân vật để đại diện cho bạn trong cuộc thi
               </p>
+              <p className="text-center text-blue-300 text-xs mt-1">
+                Có {CHARACTERS.length} nhân vật để chọn • Tối đa 4 người chơi mỗi game
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               {loading ? (
@@ -236,8 +339,9 @@ const CharacterSelection = () => {
                   <p className="text-blue-200">Đang tải danh sách nhân vật...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                  {CHARACTERS.map((character) => {
+                <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6 pb-4">
+                    {CHARACTERS.map((character) => {
                     const isSelected = selectedCharacter === character.id;
                     const isTaken = takenAvatars.has(character.image);
                     return (
@@ -296,6 +400,7 @@ const CharacterSelection = () => {
                       </button>
                     );
                   })}
+                  </div>
                 </div>
               )}
 
@@ -318,6 +423,22 @@ const CharacterSelection = () => {
           </Card>
         </div>
       </div>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+      `}</style>
     </div>
   );
 };
