@@ -10,6 +10,8 @@ import { getGameByCode, createQuestions, updateGameIntroVideos, uploadIntroVideo
 import { toast } from '@/hooks/use-toast';
 import type { RoundType } from '@/services/gameService';
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 interface Question {
   question_text: string;
@@ -490,7 +492,7 @@ const GameQuestions = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-purple-900 text-white flex items-center justify-center overflow-x-hidden">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Đang tải...</p>
@@ -500,14 +502,15 @@ const GameQuestions = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-purple-900 text-white overflow-x-hidden">
+      <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold mb-2">Tạo câu hỏi</h1>
-              <p className="text-xl text-blue-100">Mã game: {code}</p>
+              <p className="text-xl text-slate-200">Mã game: {code}</p>
             </div>
             <Button
               variant="outline"
@@ -523,7 +526,7 @@ const GameQuestions = () => {
           <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-6">
             <CardHeader>
               <CardTitle>Tạo câu hỏi cho 4 phần thi</CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardDescription className="text-slate-200">
                 Tạo câu hỏi cho từng phần thi. Mỗi câu hỏi cần có nội dung, đáp án đúng và điểm số.
               </CardDescription>
             </CardHeader>
@@ -557,7 +560,7 @@ const GameQuestions = () => {
                                 onChange={(e) => setVcnvCols(Math.max(1, Math.min(30, parseInt(e.target.value || '0'))))}
                                 className="bg-white text-gray-800"
                               />
-                              <p className="text-xs text-blue-200 mt-1">
+                              <p className="text-xs text-slate-300 mt-1">
                                 Mỗi từ hàng ngang phải có đúng {vcnvCols} ký tự (không tính khoảng trắng).
                               </p>
                             </div>
@@ -568,7 +571,7 @@ const GameQuestions = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {vcnvRows.map((row, idx) => (
                               <div key={idx} className="p-3 bg-white/5 rounded border border-white/10">
-                                <p className="text-sm text-blue-200 mb-2">Hàng ngang {idx + 1}</p>
+                                <p className="text-sm text-slate-300 mb-2">Hàng ngang {idx + 1}</p>
                                 <Label className="text-white mb-1 block">Từ khóa</Label>
                                 <Input
                                   value={row.word}
@@ -611,7 +614,7 @@ const GameQuestions = () => {
                         {/* Generic question builder for other rounds (kept as before) */}
                     {questions[round].length === 0 ? (
                       <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-blue-200 mb-4">Chưa có câu hỏi nào</p>
+                        <p className="text-slate-300 mb-4">Chưa có câu hỏi nào</p>
                         <Button
                           onClick={() => addQuestion(round)}
                           variant="outline"
@@ -656,7 +659,7 @@ const GameQuestions = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                           {['A', 'B', 'C', 'D'].map((label, optIndex) => (
                                             <div key={optIndex} className="flex items-center gap-2">
-                                              <span className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">{label}</span>
+                                              <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold">{label}</span>
                                               <Input
                                                 type="text"
                                                 value={question.options?.[optIndex] || ''}
@@ -732,7 +735,7 @@ const GameQuestions = () => {
           <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-8">
             <CardHeader>
               <CardTitle className="text-2xl">Video Intro cho các phần thi</CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardDescription className="text-slate-200">
                 Chọn video intro để phát trước khi bắt đầu mỗi phần thi
               </CardDescription>
             </CardHeader>
@@ -763,8 +766,8 @@ const GameQuestions = () => {
                           placeholder={`/videos/${round}-intro.mp4`}
                           className="bg-white text-gray-800"
                         />
-                        <p className="text-blue-200 text-xs mt-1">
-                          Ví dụ: <code className="bg-blue-900/50 px-1 rounded">/videos/{round}-intro.mp4</code>
+                        <p className="text-slate-300 text-xs mt-1">
+                          Ví dụ: <code className="bg-slate-900/50 px-1 rounded">/videos/{round}-intro.mp4</code>
                         </p>
                       </div>
                       <div className="relative">
@@ -772,7 +775,7 @@ const GameQuestions = () => {
                           <span className="w-full border-t border-white/10"></span>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-blue-900 px-2 text-blue-200 text-xs">Hoặc</span>
+                          <span className="bg-slate-900 px-2 text-slate-300 text-xs">Hoặc</span>
                         </div>
                       </div>
                       <div>
@@ -804,11 +807,11 @@ const GameQuestions = () => {
                               }));
                             }
                           }}
-                          className="bg-white text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                          className="bg-white text-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                         />
                         {videoFiles[round] && (
-                          <div className="mt-2 p-2 bg-blue-500/20 rounded border border-blue-400/30">
-                            <p className="text-blue-200 text-xs">
+                          <div className="mt-2 p-2 bg-purple-500/20 rounded border border-purple-400/30">
+                            <p className="text-slate-200 text-xs">
                               <strong>File:</strong> {videoFiles[round]?.name} ({(videoFiles[round]!.size / 1024 / 1024).toFixed(2)} MB)
                             </p>
                           </div>
@@ -817,9 +820,9 @@ const GameQuestions = () => {
                     </div>
                   </div>
                 ))}
-                <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
-                  <p className="text-blue-200 text-sm">
-                    <strong>Lưu ý:</strong> Đặt file video vào thư mục <code className="bg-blue-900/50 px-1 rounded">public</code> trong source code, sau đó nhập đường dẫn bắt đầu bằng <code className="bg-blue-900/50 px-1 rounded">/</code>
+                <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-400/20">
+                  <p className="text-slate-200 text-sm">
+                    <strong>Lưu ý:</strong> Đặt file video vào thư mục <code className="bg-slate-900/50 px-1 rounded">public</code> trong source code, sau đó nhập đường dẫn bắt đầu bằng <code className="bg-slate-900/50 px-1 rounded">/</code>
                   </p>
                 </div>
               </div>
@@ -827,10 +830,10 @@ const GameQuestions = () => {
           </Card>
 
           {/* Save Button (Sticky Footer) */}
-          <div className="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-b from-blue-900/60 to-blue-900 backdrop-blur supports-[backdrop-filter]:bg-blue-900/50 border-t border-white/10 mt-8">
+          <div className="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-b from-slate-900/60 to-purple-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border-t border-white/10 mt-8">
             <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-                <p className="text-blue-100 text-sm hidden md:block">
+                <p className="text-slate-200 text-sm hidden md:block">
                   Tổng số câu hỏi: <span className="font-semibold text-white">{(Object.keys(questions) as RoundType[]).reduce((acc, r) => acc + (questions[r]?.length || 0), 0)}</span>
                 </p>
                 <div className="ml-auto flex items-center gap-3">
@@ -845,7 +848,7 @@ const GameQuestions = () => {
                     onClick={handleSave}
                     disabled={saving || Object.values(uploadingVideo).some((v) => v)}
                     size="lg"
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-purple-600 hover:bg-purple-700"
                   >
                     <Save className="h-5 w-5 mr-2" />
                     {Object.values(uploadingVideo).some((v) => v) ? 'Đang upload video...' : saving ? 'Đang lưu...' : 'Lưu tất cả câu hỏi'}
@@ -856,6 +859,7 @@ const GameQuestions = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
