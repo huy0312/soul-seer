@@ -256,7 +256,10 @@ export const Round1KhoiDong: React.FC<Round1KhoiDongProps> = ({
       });
       // Emit round finished for realtime navigation
       emitRoundFinished(gameId, 'khoi_dong' as any).catch(() => {});
-      // onRoundComplete will be called when modal is closed
+      // Auto-return players to lobby shortly after showing results
+      setTimeout(() => {
+        onRoundComplete();
+      }, 1200);
     }
   }, [allPlayersCompleted, showResults, roundEnded, onRoundComplete]);
 

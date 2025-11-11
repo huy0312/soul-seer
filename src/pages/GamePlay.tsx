@@ -16,6 +16,7 @@ import {
   subscribeToGame,
   subscribeToPlayers,
 } from '@/services/gameService';
+import { getAnswersForRound } from '@/services/gameService';
 import { createRoundEventChannel } from '@/services/gameService';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
@@ -259,6 +260,25 @@ const GamePlay = () => {
       loadQuestionsForRound(game.id, game.current_round as RoundType);
     }
   }, [game?.current_round, game?.id, loadQuestionsForRound]);
+
+  // Fallback for Khoi Dong reload: if player has answered all questions, go to lobby
+  useEffect(() => {
+    const checkAndReturnToLobby = async () => {
+      if (!game?.id || !currentPlayerId) return;
+      if (game.current_round !== 'khoi_dong') return;
+      // If we have questions loaded and player completed all, return to lobby
+      const total = questions.length;
+      if (total === 0) return; // wait until questions are loaded
+      const { answers, error } = await getAnswersForRound(game.id, 'khoi_dong' as RoundType);
+      if (!error && answers) {
+        const myAnswers = answers.filter((a) => a.player_id === currentPlayerId);
+        if (myAnswers.length >= total) {
+          navigate(`/game/lobby/${code}`);
+        }
+      }
+    };
+    checkAndReturnToLobby();
+  }, [questions.length, game?.id, game?.current_round, currentPlayerId, code, navigate]);
 
   const handleSubmitAnswer = async (questionId: string, answer: string, responseTime?: number, useStar?: boolean): Promise<Answer | null> => {
     if (!currentPlayerId) return null;

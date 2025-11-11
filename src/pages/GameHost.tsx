@@ -311,7 +311,7 @@ const GameHost = () => {
                       </div>
                     )}
                     <div className="flex items-center gap-3">
-                      <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={() => startVCNVTimer(game.id, 10)}>
+                      <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={() => { setVCNVSignal(null); startVCNVTimer(game.id, 10); }}>
                         Bắt đầu 10s
                       </Button>
                       <Button variant="outline" className="border-blue-300 text-blue-200 hover:bg-blue-500/20" onClick={() => stopVCNVTimer(game.id)}>
@@ -393,7 +393,7 @@ const GameHost = () => {
                         size="lg"
                       >
                         <ArrowRight className="h-5 w-5 mr-2" />
-                        Chuyển sang phần thi tiếp theo
+                        {game.current_round === 'khoi_dong' ? 'Bắt đầu vòng Vượt chướng ngại vật' : 'Chuyển sang phần thi tiếp theo'}
                       </Button>
                     )}
                   </div>
