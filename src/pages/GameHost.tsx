@@ -26,6 +26,7 @@ import {
   startTangTocTimer,
   stopTangTocTimer,
   createTangTocChannel,
+  createVeDichSignalChannel,
 } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -69,6 +70,9 @@ const GameHost = () => {
   const [tangTocCorrectAnswer, setTangTocCorrectAnswer] = useState<string>('');
   const tangTocTimerRef = useRef<number | null>(null);
   const tangTocCurrentQuestionIdRef = useRef<string | null>(null);
+  
+  // Về đích: Players who have signaled they have an answer
+  const [veDichSignaledPlayers, setVeDichSignaledPlayers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!code) {
@@ -573,21 +577,42 @@ const GameHost = () => {
         }
         
         // Set timer to show answer modal after duration
-        tangTocTimerRef.current = window.setTimeout(() => {
+        tangTocTimerRef.current = window.setTimeout(async () => {
           // Find question by ID (more reliable than index)
           const questionId = tangTocCurrentQuestionIdRef.current;
+          console.log('Timer ended, questionId:', questionId);
+          console.log('tangTocQuestions:', tangTocQuestions);
+          console.log('tangTocCurrentQuestionIndex:', tangTocCurrentQuestionIndex);
+          
           if (questionId) {
-            const question = tangTocQuestions.find((q) => q.id === questionId);
-            if (question && question.correct_answer) {
-              setTangTocCorrectAnswer(question.correct_answer);
-              setShowTangTocAnswerModal(true);
+            let question = tangTocQuestions.find((q) => q.id === questionId);
+            
+            // If question not found in array, try to load from database
+            if (!question) {
+              console.log('Question not found in array, loading from database...');
+              const { questions } = await getQuestions(game.id, 'tang_toc');
+              if (questions) {
+                question = questions.find((q) => q.id === questionId) || null;
+              }
             }
-            // Refresh answers after timer ends to show all submitted answers
+            
             if (question) {
+              console.log('Found question:', question);
+              console.log('Correct answer:', question.correct_answer);
+              
+              if (question.correct_answer) {
+                setTangTocCorrectAnswer(question.correct_answer);
+                setShowTangTocAnswerModal(true);
+                console.log('Answer modal should be shown now');
+              } else {
+                console.warn('Question found but no correct_answer:', question);
+              }
+              
+              // Refresh answers after timer ends to show all submitted answers
               getAnswersForRound(game.id, 'tang_toc').then(({ answers, error }) => {
                 if (!error && answers) {
                   const mapped = answers
-                    .filter((ans) => ans.question_id === question.id)
+                    .filter((ans) => ans.question_id === question!.id)
                     .map((ans) => ({
                       ...ans,
                       playerName: players.find((p) => p.id === ans.player_id)?.name,
@@ -595,7 +620,11 @@ const GameHost = () => {
                   setTangTocAnswers(mapped);
                 }
               });
+            } else {
+              console.error('Question not found even after loading from database:', questionId);
             }
+          } else {
+            console.error('No questionId stored in ref');
           }
         }, duration * 1000);
       } else if (evt.type === 'stop_timer') {
@@ -619,6 +648,33 @@ const GameHost = () => {
       setShowTangTocAnswerModal(false);
     };
   }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
+
+  // Subscribe to Về đích signals
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 've_dich') {
+      setVeDichSignaledPlayers(new Set());
+      return;
+    }
+
+    const unsubscribe = createVeDichSignalChannel(game.id, (event) => {
+      setVeDichSignaledPlayers((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(event.playerId);
+        return newSet;
+      });
+      
+      // Show toast notification
+      const playerName = event.playerName || players.find((p) => p.id === event.playerId)?.name || 'Thí sinh';
+      toast({
+        title: 'Có câu trả lời!',
+        description: `${playerName} đã bấm nút có câu trả lời`,
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [game?.id, game?.current_round, players]);
 
   if (loading) {
     return (
@@ -702,27 +758,34 @@ const GameHost = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-6">
-                {tangTocQuestions[tangTocCurrentQuestionIndex] && (
-                  <>
-                    {tangTocQuestions[tangTocCurrentQuestionIndex].hint && (
-                      <div className="w-full flex justify-center">
-                        <img
-                          src={tangTocQuestions[tangTocCurrentQuestionIndex].hint!}
-                          alt={`Câu hỏi ${tangTocCurrentQuestionIndex + 1}`}
-                          className="max-w-full h-auto max-h-96 object-contain rounded-lg border-4 border-yellow-400/50"
-                        />
+                {(() => {
+                  const questionId = tangTocCurrentQuestionIdRef.current;
+                  const question = questionId 
+                    ? tangTocQuestions.find((q) => q.id === questionId) 
+                    : tangTocQuestions[tangTocCurrentQuestionIndex];
+                  
+                  return question ? (
+                    <>
+                      {question.hint && (
+                        <div className="w-full flex justify-center">
+                          <img
+                            src={question.hint}
+                            alt={`Câu hỏi ${question.order_index + 1}`}
+                            className="max-w-full h-auto max-h-96 object-contain rounded-lg border-4 border-yellow-400/50"
+                          />
+                        </div>
+                      )}
+                      <div className="p-6 bg-white/10 rounded-lg border-2 border-white/20">
+                        <p className="text-white text-xl font-medium mb-4 text-center">
+                          {question.question_text}
+                        </p>
                       </div>
-                    )}
-                    <div className="p-6 bg-white/10 rounded-lg border-2 border-white/20">
-                      <p className="text-white text-xl font-medium mb-4 text-center">
-                        {tangTocQuestions[tangTocCurrentQuestionIndex].question_text}
-                      </p>
-                    </div>
-                  </>
-                )}
+                    </>
+                  ) : null;
+                })()}
                 <div className="p-8 bg-yellow-500/20 rounded-lg border-4 border-yellow-400">
                   <p className="text-5xl font-extrabold text-yellow-300 text-center">
-                    {tangTocCorrectAnswer}
+                    {tangTocCorrectAnswer || 'Chưa có đáp án'}
                   </p>
                 </div>
                 <div className="flex justify-center">
@@ -946,6 +1009,15 @@ const GameHost = () => {
                               // Don't clear answers immediately - let them accumulate
                               // Answers will be refreshed after timer ends
                               try {
+                                // Ensure question ID is set before starting timer
+                                const currentQuestion = tangTocQuestions[tangTocCurrentQuestionIndex];
+                                if (currentQuestion) {
+                                  tangTocCurrentQuestionIdRef.current = currentQuestion.id;
+                                  console.log('Set question ID before timer:', currentQuestion.id);
+                                } else {
+                                  console.warn('No current question when starting timer, index:', tangTocCurrentQuestionIndex);
+                                }
+                                
                                 await startTangTocTimer(game.id, 20);
                                 playCountdownSound(20);
                                 // Clear answers only when starting new timer
@@ -1045,16 +1117,52 @@ const GameHost = () => {
                     <CardTitle>Điều khiển phần 4 - Về đích</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Thông báo có câu trả lời */}
+                    {veDichSignaledPlayers.size > 0 && (
+                      <div className="p-4 bg-yellow-500/20 border-2 border-yellow-400 rounded-lg">
+                        <p className="text-yellow-200 font-semibold mb-2">Thí sinh có câu trả lời:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from(veDichSignaledPlayers).map((playerId) => {
+                            const player = players.find((p) => p.id === playerId);
+                            return player ? (
+                              <span
+                                key={playerId}
+                                className="px-3 py-1 bg-yellow-500/30 border border-yellow-400 rounded-full text-yellow-200 font-medium"
+                              >
+                                {player.name}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 border-yellow-400 text-yellow-200 hover:bg-yellow-500/20"
+                          onClick={() => setVeDichSignaledPlayers(new Set())}
+                        >
+                          Xóa thông báo
+                        </Button>
+                      </div>
+                    )}
+                    
                     <div className="space-y-3">
-                      <p className="text-blue-100 text-sm">Cộng điểm cho từng thí sinh:</p>
+                      <p className="text-blue-100 text-sm">Cộng/Trừ điểm cho từng thí sinh:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {playingPlayers.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-                            <span className="font-semibold">{p.name}</span>
-                            <div className="flex items-center gap-2">
+                          <div key={p.id} className="flex flex-col gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{p.name}</span>
+                              {veDichSignaledPlayers.has(p.id) && (
+                                <span className="px-2 py-1 bg-yellow-500/30 border border-yellow-400 rounded text-yellow-200 text-xs">
+                                  Có câu trả lời
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-blue-200 mr-1">Cộng:</span>
                               {[80, 40, 20, 10].map((pts) => (
                                 <Button
-                                  key={pts}
+                                  key={`add-${pts}`}
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={async () => {
@@ -1067,6 +1175,24 @@ const GameHost = () => {
                                   }}
                                 >
                                   +{pts}
+                                </Button>
+                              ))}
+                              <span className="text-xs text-blue-200 mr-1 ml-2">Trừ:</span>
+                              {[80, 40, 20, 10].map((pts) => (
+                                <Button
+                                  key={`sub-${pts}`}
+                                  size="sm"
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={async () => {
+                                    const { error } = await awardPoints(p.id, -pts);
+                                    if (error) {
+                                      toast({ title: 'Lỗi', description: `Không thể trừ điểm ${pts}`, variant: 'destructive' });
+                                    } else {
+                                      toast({ title: 'Đã trừ điểm', description: `-${pts} cho ${p.name}` });
+                                    }
+                                  }}
+                                >
+                                  -{pts}
                                 </Button>
                               ))}
                             </div>

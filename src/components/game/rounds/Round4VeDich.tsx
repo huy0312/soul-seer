@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { Database } from '@/integrations/supabase/types';
-import { subscribeToPlayers } from '@/services/gameService';
+import { subscribeToPlayers, emitVeDichSignal } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Hand } from 'lucide-react';
 
 type Player = Database['public']['Tables']['players']['Row'];
 
@@ -19,6 +21,7 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
   onRoundComplete,
 }) => {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [hasSignaled, setHasSignaled] = useState(false);
 
   // Initialize from props if available
   useEffect(() => {
@@ -100,10 +103,33 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
           </div>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <p className="text-blue-200 text-lg">
             Host đang chấm điểm cho phần thi Về đích...
           </p>
+          
+          <Button
+            onClick={async () => {
+              if (!currentPlayer) return;
+              
+              try {
+                await emitVeDichSignal(gameId, currentPlayerId, currentPlayer.name);
+                setHasSignaled(true);
+              } catch (error) {
+                console.error('Error sending signal:', error);
+              }
+            }}
+            disabled={hasSignaled}
+            className={`text-lg px-8 py-6 ${
+              hasSignaled
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold'
+            }`}
+            size="lg"
+          >
+            <Hand className="h-6 w-6 mr-2" />
+            {hasSignaled ? 'Đã thông báo có câu trả lời' : 'Có câu trả lời'}
+          </Button>
         </div>
       </div>
     </div>

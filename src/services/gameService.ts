@@ -1030,6 +1030,46 @@ export async function awardPoints(playerId: string, points: number): Promise<{ e
   }
 }
 
+// Về đích: Signal channel for players to notify host they have an answer
+export function createVeDichSignalChannel(
+  gameId: string,
+  onSignal: (event: { playerId: string; playerName?: string }) => void
+): () => void {
+  const channelName = `vedich_signal:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'signal:has_answer' }, (payload) => {
+      const data = (payload as any)?.payload || {};
+      if (data?.playerId) {
+        onSignal({ playerId: data.playerId, playerName: data.playerName });
+      }
+    })
+    .subscribe((status) => {
+      console.log('VeDich signal channel status:', status);
+    });
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function emitVeDichSignal(
+  gameId: string,
+  playerId: string,
+  playerName?: string
+): Promise<void> {
+  const channelName = `vedich_signal:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'signal:has_answer',
+    payload: { playerId, playerName },
+  });
+  // Wait a bit to ensure message is sent
+  await new Promise(resolve => setTimeout(resolve, 100));
+  supabase.removeChannel(channel);
+}
+
 // Question Sets Management
 export interface QuestionSet {
   id: string;
