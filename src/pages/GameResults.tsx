@@ -18,6 +18,7 @@ const GameResults = () => {
   const [loading, setLoading] = useState(true);
   const [revealedPlayers, setRevealedPlayers] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const awardSoundRef = useRef<HTMLAudioElement | null>(null);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -75,10 +76,19 @@ const GameResults = () => {
         audioRef.current = altAudio;
       });
 
+      // Load award sound (trao giải sound)
+      const awardSound = new Audio('/music/award-sound.mp3');
+      awardSound.volume = 0.7;
+      awardSoundRef.current = awardSound;
+
       return () => {
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current = null;
+        }
+        if (awardSoundRef.current) {
+          awardSoundRef.current.pause();
+          awardSoundRef.current = null;
         }
       };
     }
@@ -172,6 +182,18 @@ const GameResults = () => {
         setRevealedPlayers(currentIndex);
         if (currentIndex >= sortedPlayers.length) {
           clearInterval(revealInterval);
+          // Play award sound when all players are revealed (winner announcement)
+          if (awardSoundRef.current) {
+            awardSoundRef.current.play().catch((err) => {
+              console.log('Could not play award sound:', err);
+              // Try alternative sound files
+              const altSound = new Audio('/music/trao-giai.mp3');
+              altSound.volume = 0.7;
+              altSound.play().catch(() => {
+                console.log('Alternative award sound also not available');
+              });
+            });
+          }
         }
       }, 1500); // Reveal one player every 1.5 seconds
 
