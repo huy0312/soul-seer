@@ -286,6 +286,95 @@ export type Database = {
           }
         ]
       }
+      question_sets: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          round: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          round?: 'khoi_dong' | 'vuot_chuong_ngai_vat' | 'tang_toc' | 've_dich'
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_sets_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      question_templates: {
+        Row: {
+          id: string
+          set_id: string
+          question_text: string
+          correct_answer: string
+          points: number
+          order_index: number
+          question_type: string | null
+          hang_ngang_index: number | null
+          goi_diem: number | null
+          hint: string | null
+          options: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          set_id: string
+          question_text: string
+          correct_answer: string
+          points?: number
+          order_index: number
+          question_type?: string | null
+          hang_ngang_index?: number | null
+          goi_diem?: number | null
+          hint?: string | null
+          options?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          set_id?: string
+          question_text?: string
+          correct_answer?: string
+          points?: number
+          order_index?: number
+          question_type?: string | null
+          hang_ngang_index?: number | null
+          goi_diem?: number | null
+          hint?: string | null
+          options?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_templates_set_id_fkey"
+            columns: ["set_id"]
+            referencedRelation: "question_sets"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       ve_dich_state: {
         Row: {
           id: string

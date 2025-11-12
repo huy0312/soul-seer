@@ -1030,3 +1030,203 @@ export async function awardPoints(playerId: string, points: number): Promise<{ e
   }
 }
 
+// Question Sets Management
+export interface QuestionSet {
+  id: string;
+  user_id: string;
+  name: string;
+  round: RoundType;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  questions?: Array<{
+    id: string;
+    question_text: string;
+    correct_answer: string;
+    points: number;
+    order_index: number;
+    question_type: string | null;
+    hang_ngang_index: number | null;
+    goi_diem: number | null;
+    hint: string | null;
+    options: string[] | null;
+  }>;
+}
+
+// Save current questions as a template set
+export async function saveQuestionSet(
+  name: string,
+  round: RoundType,
+  questions: Array<{
+    question_text: string;
+    correct_answer: string;
+    points: number;
+    order_index: number;
+    question_type?: 'normal' | 'hang_ngang' | 'chuong_ngai_vat' | 'goi_cau_hoi';
+    hang_ngang_index?: number | null;
+    goi_diem?: number | null;
+    hint?: string | null;
+    options?: string[] | null;
+  }>,
+  description?: string
+): Promise<{ setId: string | null; error: Error | null }> {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { setId: null, error: new Error('Bạn cần đăng nhập để lưu set câu hỏi') };
+    }
+
+    // Create question set
+    const { data: setData, error: setError } = await supabase
+      .from('question_sets')
+      .insert({
+        user_id: user.id,
+        name,
+        round,
+        description: description || null,
+      })
+      .select()
+      .single();
+
+    if (setError) throw setError;
+    if (!setData) throw new Error('Failed to create question set');
+
+    // Insert question templates
+    const templates = questions.map((q) => ({
+      set_id: setData.id,
+      question_text: q.question_text,
+      correct_answer: q.correct_answer,
+      points: q.points,
+      order_index: q.order_index,
+      question_type: q.question_type || 'normal',
+      hang_ngang_index: q.hang_ngang_index ?? null,
+      goi_diem: q.goi_diem ?? null,
+      hint: q.hint ?? null,
+      options: q.options ? JSON.stringify(q.options) : null,
+    }));
+
+    const { error: templatesError } = await supabase
+      .from('question_templates')
+      .insert(templates);
+
+    if (templatesError) throw templatesError;
+
+    return { setId: setData.id, error: null };
+  } catch (error) {
+    return { setId: null, error: error as Error };
+  }
+}
+
+// Get all question sets for current user, optionally filtered by round
+export async function getQuestionSets(round?: RoundType): Promise<{ sets: QuestionSet[]; error: Error | null }> {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { sets: [], error: new Error('Bạn cần đăng nhập để xem set câu hỏi') };
+    }
+
+    let query = supabase
+      .from('question_sets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (round) {
+      query = query.eq('round', round);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return { sets: data || [], error: null };
+  } catch (error) {
+    return { sets: [], error: error as Error };
+  }
+}
+
+// Get a specific question set with all its questions
+export async function getQuestionSet(setId: string): Promise<{ set: QuestionSet | null; error: Error | null }> {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { set: null, error: new Error('Bạn cần đăng nhập để xem set câu hỏi') };
+    }
+
+    // Get set
+    const { data: setData, error: setError } = await supabase
+      .from('question_sets')
+      .select('*')
+      .eq('id', setId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (setError) throw setError;
+    if (!setData) return { set: null, error: new Error('Question set not found') };
+
+    // Get questions
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('question_templates')
+      .select('*')
+      .eq('set_id', setId)
+      .order('order_index', { ascending: true });
+
+    if (questionsError) throw questionsError;
+
+    const questions = (questionsData || []).map((q) => ({
+      id: q.id,
+      question_text: q.question_text,
+      correct_answer: q.correct_answer,
+      points: q.points,
+      order_index: q.order_index,
+      question_type: q.question_type,
+      hang_ngang_index: q.hang_ngang_index,
+      goi_diem: q.goi_diem,
+      hint: q.hint,
+      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : null,
+    }));
+
+    return {
+      set: {
+        ...setData,
+        questions,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return { set: null, error: error as Error };
+  }
+}
+
+// Delete a question set
+export async function deleteQuestionSet(setId: string): Promise<{ error: Error | null }> {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { error: new Error('Bạn cần đăng nhập để xóa set câu hỏi') };
+    }
+
+    // Verify ownership
+    const { data: setData, error: checkError } = await supabase
+      .from('question_sets')
+      .select('user_id')
+      .eq('id', setId)
+      .single();
+
+    if (checkError) throw checkError;
+    if (setData?.user_id !== user.id) {
+      return { error: new Error('Bạn không có quyền xóa set câu hỏi này') };
+    }
+
+    // Delete set (cascade will delete templates)
+    const { error: deleteError } = await supabase
+      .from('question_sets')
+      .delete()
+      .eq('id', setId);
+
+    if (deleteError) throw deleteError;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+}
+
