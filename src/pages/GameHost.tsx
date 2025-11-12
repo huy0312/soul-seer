@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RoundDisplay } from '@/components/game/RoundDisplay';
 import { Scoreboard } from '@/components/game/Scoreboard';
 import { PlayerList } from '@/components/game/PlayerList';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   getGameByCode,
   getPlayers,
@@ -24,6 +25,7 @@ import {
   showTangTocQuestion,
   startTangTocTimer,
   stopTangTocTimer,
+  createTangTocChannel,
 } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -59,10 +61,13 @@ const GameHost = () => {
   const [vcnvTimerRemaining, setVCNVTimerRemaining] = useState<number>(0);
   
   // Tăng tốc state
-  const [tangTocQuestions, setTangTocQuestions] = useState<Array<{ id: string; question_text: string; hint: string | null; order_index: number }>>([]);
+  const [tangTocQuestions, setTangTocQuestions] = useState<Array<{ id: string; question_text: string; hint: string | null; order_index: number; correct_answer?: string }>>([]);
   const [tangTocCurrentQuestionIndex, setTangTocCurrentQuestionIndex] = useState<number>(-1);
   const [tangTocAnswers, setTangTocAnswers] = useState<Array<AnswerRow & { playerName?: string }>>([]);
   const tangTocAnswersChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [showTangTocAnswerModal, setShowTangTocAnswerModal] = useState(false);
+  const [tangTocCorrectAnswer, setTangTocCorrectAnswer] = useState<string>('');
+  const tangTocTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -423,6 +428,7 @@ const GameHost = () => {
             question_text: q.question_text,
             hint: q.hint,
             order_index: q.order_index,
+            correct_answer: q.correct_answer,
           })));
         }
       } catch (error) {
@@ -512,6 +518,54 @@ const GameHost = () => {
     };
   }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
 
+  // Subscribe to Tăng tốc timer to show answer modal when timer ends
+  useEffect(() => {
+    if (!game?.id || game.current_round !== 'tang_toc') {
+      if (tangTocTimerRef.current) {
+        window.clearTimeout(tangTocTimerRef.current);
+        tangTocTimerRef.current = null;
+      }
+      setShowTangTocAnswerModal(false);
+      return;
+    }
+
+    const unsubscribe = createTangTocChannel(game.id, (evt) => {
+      if (evt.type === 'start_timer') {
+        const { durationSec } = evt.payload || {};
+        const duration = Number(durationSec) || 20;
+        
+        // Clear any existing timer
+        if (tangTocTimerRef.current) {
+          window.clearTimeout(tangTocTimerRef.current);
+        }
+        
+        // Set timer to show answer modal after duration
+        tangTocTimerRef.current = window.setTimeout(() => {
+          const currentQuestion = tangTocQuestions[tangTocCurrentQuestionIndex];
+          if (currentQuestion && currentQuestion.correct_answer) {
+            setTangTocCorrectAnswer(currentQuestion.correct_answer);
+            setShowTangTocAnswerModal(true);
+          }
+        }, duration * 1000);
+      } else if (evt.type === 'stop_timer') {
+        // Clear timer if stopped manually
+        if (tangTocTimerRef.current) {
+          window.clearTimeout(tangTocTimerRef.current);
+          tangTocTimerRef.current = null;
+        }
+        setShowTangTocAnswerModal(false);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (tangTocTimerRef.current) {
+        window.clearTimeout(tangTocTimerRef.current);
+        tangTocTimerRef.current = null;
+      }
+    };
+  }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white flex items-center justify-center">
@@ -584,6 +638,52 @@ const GameHost = () => {
               setRound1Monitoring(false);
             }}
           />
+          
+          {/* Tăng tốc Answer Modal */}
+          <Dialog open={showTangTocAnswerModal} onOpenChange={setShowTangTocAnswerModal}>
+            <DialogContent className="max-w-4xl bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 border-yellow-400/50 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-3xl font-bold text-yellow-400 text-center mb-6">
+                  Đáp án đúng
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {tangTocQuestions[tangTocCurrentQuestionIndex] && (
+                  <>
+                    {tangTocQuestions[tangTocCurrentQuestionIndex].hint && (
+                      <div className="w-full flex justify-center">
+                        <img
+                          src={tangTocQuestions[tangTocCurrentQuestionIndex].hint!}
+                          alt={`Câu hỏi ${tangTocCurrentQuestionIndex + 1}`}
+                          className="max-w-full h-auto max-h-96 object-contain rounded-lg border-4 border-yellow-400/50"
+                        />
+                      </div>
+                    )}
+                    <div className="p-6 bg-white/10 rounded-lg border-2 border-white/20">
+                      <p className="text-white text-xl font-medium mb-4 text-center">
+                        {tangTocQuestions[tangTocCurrentQuestionIndex].question_text}
+                      </p>
+                    </div>
+                  </>
+                )}
+                <div className="p-8 bg-yellow-500/20 rounded-lg border-4 border-yellow-400">
+                  <p className="text-5xl font-extrabold text-yellow-300 text-center">
+                    {tangTocCorrectAnswer}
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => setShowTangTocAnswerModal(false)}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 text-lg"
+                    size="lg"
+                  >
+                    Đóng
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
