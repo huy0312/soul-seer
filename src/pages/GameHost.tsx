@@ -880,6 +880,46 @@ const GameHost = () => {
                   </CardContent>
                 </Card>
               )}
+              
+              {/* Về đích Controls for Host */}
+              {game.current_round === 've_dich' && (
+                <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+                  <CardHeader>
+                    <CardTitle>Điều khiển phần 4 - Về đích</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-3">
+                      <p className="text-blue-100 text-sm">Cộng điểm cho từng thí sinh:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {playingPlayers.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                            <span className="font-semibold">{p.name}</span>
+                            <div className="flex items-center gap-2">
+                              {[80, 40, 20, 10].map((pts) => (
+                                <Button
+                                  key={pts}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={async () => {
+                                    const { error } = await awardPoints(p.id, pts);
+                                    if (error) {
+                                      toast({ title: 'Lỗi', description: `Không thể cộng điểm ${pts}`, variant: 'destructive' });
+                                    } else {
+                                      toast({ title: 'Đã cộng điểm', description: `+${pts} cho ${p.name}` });
+                                    }
+                                  }}
+                                >
+                                  +{pts}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column - Players */}

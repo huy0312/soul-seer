@@ -570,14 +570,9 @@ const GamePlay = () => {
 
           {game.current_round === 've_dich' && (
             <Round4VeDich
-              questions={questions}
               players={playingPlayers}
               currentPlayerId={currentPlayerId}
               gameId={game.id}
-              onSubmitAnswer={(questionId, answer, useStar) =>
-                handleSubmitAnswer(questionId, answer, undefined, useStar)
-              }
-              onNextQuestion={handleNextQuestion}
               onRoundComplete={handleRoundComplete}
             />
           )}
