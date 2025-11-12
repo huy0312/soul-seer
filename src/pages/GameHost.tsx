@@ -655,14 +655,19 @@ const GameHost = () => {
     };
   }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
 
-  // Subscribe to Về đích signals
+  // Subscribe to Về đích signals and timer
   useEffect(() => {
     if (!game?.id || game.current_round !== 've_dich') {
       setVeDichSignaledPlayers(new Set());
+      if (veDichTimerIntervalRef.current) {
+        window.clearInterval(veDichTimerIntervalRef.current);
+        veDichTimerIntervalRef.current = null;
+      }
+      setVeDichTimerRemaining(0);
       return;
     }
 
-    const unsubscribe = createVeDichSignalChannel(game.id, (event) => {
+    const unsubscribeSignal = createVeDichSignalChannel(game.id, (event) => {
       setVeDichSignaledPlayers((prev) => {
         const newSet = new Set(prev);
         newSet.add(event.playerId);
@@ -677,8 +682,51 @@ const GameHost = () => {
       });
     });
 
+    const unsubscribeTimer = createVeDichTimerChannel(game.id, (evt) => {
+      if (evt.type === 'start') {
+        const durationSec = Number(evt.payload?.durationSec) || 30;
+        const startedAt = Number(evt.payload?.startedAt) || Date.now();
+        const endAt = startedAt + durationSec * 1000;
+
+        if (veDichTimerStartRef.current !== startedAt) {
+          veDichTimerStartRef.current = startedAt;
+        }
+
+        if (veDichTimerIntervalRef.current) {
+          window.clearInterval(veDichTimerIntervalRef.current);
+        }
+
+        const tick = () => {
+          const now = Date.now();
+          const remainingMs = Math.max(0, endAt - now);
+          setVeDichTimerRemaining(Math.ceil(remainingMs / 1000));
+          if (remainingMs <= 0 && veDichTimerIntervalRef.current) {
+            window.clearInterval(veDichTimerIntervalRef.current);
+            veDichTimerIntervalRef.current = null;
+          }
+        };
+
+        tick();
+        veDichTimerIntervalRef.current = window.setInterval(tick, 200);
+      }
+
+      if (evt.type === 'stop') {
+        if (veDichTimerIntervalRef.current) {
+          window.clearInterval(veDichTimerIntervalRef.current);
+          veDichTimerIntervalRef.current = null;
+        }
+        setVeDichTimerRemaining(0);
+        veDichTimerStartRef.current = null;
+      }
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeSignal();
+      unsubscribeTimer();
+      if (veDichTimerIntervalRef.current) {
+        window.clearInterval(veDichTimerIntervalRef.current);
+        veDichTimerIntervalRef.current = null;
+      }
     };
   }, [game?.id, game?.current_round, players]);
 
@@ -1123,6 +1171,45 @@ const GameHost = () => {
                     <CardTitle>Điều khiển phần 4 - Về đích</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Timer Controls */}
+                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await startVeDichTimer(game.id, 30);
+                          } catch (error) {
+                            console.error('Unable to start VeDich timer', error);
+                            toast({
+                              title: 'Lỗi',
+                              description: 'Không thể bắt đầu đếm ngược.',
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Bắt đầu 30s
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await stopVeDichTimer(game.id);
+                          } catch (error) {
+                            console.error('Unable to stop VeDich timer', error);
+                          }
+                        }}
+                      >
+                        Dừng
+                      </Button>
+                      <div className="ml-auto flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 border border-white/20">
+                        <span className="text-sm text-blue-200">Thời gian còn lại:</span>
+                        <span className="text-3xl font-bold text-white tabular-nums">
+                          {veDichTimerRemaining > 0 ? `${veDichTimerRemaining}s` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Thông báo có câu trả lời */}
                     {veDichSignaledPlayers.size > 0 && (
                       <div className="p-4 bg-yellow-500/20 border-2 border-yellow-400 rounded-lg">

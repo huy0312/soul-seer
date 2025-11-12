@@ -158,6 +158,18 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
               {currentPlayer.score}
             </div>
             <p className="text-xl text-blue-200 mt-6">Điểm số được cập nhật theo thời gian thực</p>
+            
+            {/* Timer Display */}
+            {timerActive && (
+              <div className="mt-8 p-6 bg-red-500/20 border-2 border-red-400 rounded-2xl">
+                <p className="text-2xl text-red-200 mb-2">Thời gian còn lại</p>
+                <div className={`text-7xl font-extrabold ${
+                  remaining <= 5 ? 'text-red-400 animate-pulse' : 'text-red-300'
+                } drop-shadow-lg`}>
+                  {remaining}s
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
