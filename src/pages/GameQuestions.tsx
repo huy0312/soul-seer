@@ -215,6 +215,11 @@ const GameQuestions = () => {
     for (const round of Object.keys(questions) as RoundType[]) {
       const roundQuestions = questions[round];
       
+      // Skip validation for Về đích (no questions needed)
+      if (round === 've_dich') {
+        continue;
+      }
+      
       // Validate Tăng tốc must have exactly 4 questions
       if (round === 'tang_toc') {
         if (roundQuestions.length !== 4) {
@@ -329,6 +334,10 @@ const GameQuestions = () => {
 
       for (const round of Object.keys(questions) as RoundType[]) {
         const roundQuestions = questions[round];
+        // Skip Về đích - no questions needed
+        if (round === 've_dich') {
+          continue;
+        }
         for (const q of roundQuestions) {
           allQuestions.push({
             round,
@@ -616,6 +625,21 @@ const GameQuestions = () => {
                           </div>
                         )}
                     </div>
+                    ) : round === 've_dich' ? (
+                      <div className="space-y-6">
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                          <h4 className="font-semibold mb-2">Phần 4 - Về đích</h4>
+                          <p className="text-blue-200">
+                            Phần thi Về đích không cần tạo câu hỏi trong hệ thống.
+                            Host sẽ chấm điểm trực tiếp cho từng thí sinh bằng các nút +80, +40, +20, +10 điểm.
+                            Người chơi sẽ chỉ thấy điểm số của mình được cập nhật realtime.
+                          </p>
+                        </div>
+                        <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
+                          <p className="text-blue-200 text-lg mb-2">Không cần tạo câu hỏi cho phần thi này</p>
+                          <p className="text-blue-300 text-sm">Chỉ cần upload video intro (nếu có) ở phần dưới</p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-4">
                         {/* Generic question builder for other rounds (kept as before) */}
