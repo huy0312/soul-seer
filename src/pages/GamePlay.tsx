@@ -431,9 +431,11 @@ const GamePlay = () => {
     );
   }
 
-  // For VCNV round, questions array can be empty (no DB questions needed)
+  // For VCNV and VeDich rounds, questions array can be empty (no DB questions needed)
   // For other rounds, we need questions
-  const needsQuestions = game?.current_round && game.current_round !== 'vuot_chuong_ngai_vat';
+  const needsQuestions = game?.current_round && 
+    game.current_round !== 'vuot_chuong_ngai_vat' && 
+    game.current_round !== 've_dich';
   
   // If we should show intro, don't block on questions loading
   const shouldShowIntroNow = showVideoIntro && game?.current_round && !videoIntroCompleted.has(game.current_round as RoundType);

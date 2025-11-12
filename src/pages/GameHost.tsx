@@ -68,6 +68,7 @@ const GameHost = () => {
   const [showTangTocAnswerModal, setShowTangTocAnswerModal] = useState(false);
   const [tangTocCorrectAnswer, setTangTocCorrectAnswer] = useState<string>('');
   const tangTocTimerRef = useRef<number | null>(null);
+  const tangTocCurrentQuestionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!code) {
@@ -565,26 +566,36 @@ const GameHost = () => {
           window.clearTimeout(tangTocTimerRef.current);
         }
         
+        // Store current question ID for timer callback
+        const currentQuestion = tangTocQuestions[tangTocCurrentQuestionIndex];
+        if (currentQuestion) {
+          tangTocCurrentQuestionIdRef.current = currentQuestion.id;
+        }
+        
         // Set timer to show answer modal after duration
         tangTocTimerRef.current = window.setTimeout(() => {
-          const currentQuestion = tangTocQuestions[tangTocCurrentQuestionIndex];
-          if (currentQuestion && currentQuestion.correct_answer) {
-            setTangTocCorrectAnswer(currentQuestion.correct_answer);
-            setShowTangTocAnswerModal(true);
-          }
-          // Refresh answers after timer ends to show all submitted answers
-          if (currentQuestion) {
-            getAnswersForRound(game.id, 'tang_toc').then(({ answers, error }) => {
-              if (!error && answers) {
-                const mapped = answers
-                  .filter((ans) => ans.question_id === currentQuestion.id)
-                  .map((ans) => ({
-                    ...ans,
-                    playerName: players.find((p) => p.id === ans.player_id)?.name,
-                  }));
-                setTangTocAnswers(mapped);
-              }
-            });
+          // Find question by ID (more reliable than index)
+          const questionId = tangTocCurrentQuestionIdRef.current;
+          if (questionId) {
+            const question = tangTocQuestions.find((q) => q.id === questionId);
+            if (question && question.correct_answer) {
+              setTangTocCorrectAnswer(question.correct_answer);
+              setShowTangTocAnswerModal(true);
+            }
+            // Refresh answers after timer ends to show all submitted answers
+            if (question) {
+              getAnswersForRound(game.id, 'tang_toc').then(({ answers, error }) => {
+                if (!error && answers) {
+                  const mapped = answers
+                    .filter((ans) => ans.question_id === question.id)
+                    .map((ans) => ({
+                      ...ans,
+                      playerName: players.find((p) => p.id === ans.player_id)?.name,
+                    }));
+                  setTangTocAnswers(mapped);
+                }
+              });
+            }
           }
         }, duration * 1000);
       } else if (evt.type === 'stop_timer') {
@@ -593,6 +604,7 @@ const GameHost = () => {
           window.clearTimeout(tangTocTimerRef.current);
           tangTocTimerRef.current = null;
         }
+        tangTocCurrentQuestionIdRef.current = null;
         setShowTangTocAnswerModal(false);
       }
     });
@@ -603,8 +615,10 @@ const GameHost = () => {
         window.clearTimeout(tangTocTimerRef.current);
         tangTocTimerRef.current = null;
       }
+      tangTocCurrentQuestionIdRef.current = null;
+      setShowTangTocAnswerModal(false);
     };
-  }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions]);
+  }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
 
   if (loading) {
     return (

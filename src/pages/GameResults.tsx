@@ -54,38 +54,15 @@ const GameResults = () => {
     loadResults();
   }, [code, navigate]);
 
-  // Initialize audio
+  // Initialize audio - only award sound, no background music
   useEffect(() => {
     if (!loading && players.length > 0) {
-      // Try to load background music from public/music
-      const audio = new Audio('/music/khoi-dong-bg.mp3');
-      audio.loop = true;
-      audio.volume = 0.5;
-      audioRef.current = audio;
-
-      // Try to play, but don't fail if file doesn't exist
-      audio.play().catch((err) => {
-        console.log('Could not play background music:', err);
-        // Try alternative music files
-        const altAudio = new Audio('/mymusic.mp3');
-        altAudio.loop = true;
-        altAudio.volume = 0.5;
-        altAudio.play().catch(() => {
-          console.log('Alternative music also not available');
-        });
-        audioRef.current = altAudio;
-      });
-
       // Load award sound (trao giải sound)
       const awardSound = new Audio('/music/award-sound.mp3');
       awardSound.volume = 0.7;
       awardSoundRef.current = awardSound;
 
       return () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
         if (awardSoundRef.current) {
           awardSoundRef.current.pause();
           awardSoundRef.current = null;
