@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Database } from '@/integrations/supabase/types';
-import { subscribeToPlayers, emitVeDichSignal } from '@/services/gameService';
+import { subscribeToPlayers, emitVeDichSignal, createVeDichTimerChannel } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Hand } from 'lucide-react';
@@ -22,6 +22,10 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
 }) => {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [hasSignaled, setHasSignaled] = useState(false);
+  const [timerActive, setTimerActive] = useState(false);
+  const [remaining, setRemaining] = useState<number>(0);
+  const timerIntervalRef = useRef<number | null>(null);
+  const timerStartRef = useRef<number | null>(null);
 
   // Initialize from props if available
   useEffect(() => {
@@ -74,6 +78,60 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
       clearInterval(pollingInterval);
     };
   }, [gameId, currentPlayerId, players]);
+
+  // Subscribe to timer events
+  useEffect(() => {
+    const unsubscribe = createVeDichTimerChannel(gameId, (evt) => {
+      if (evt.type === 'start') {
+        const durationSec = Number(evt.payload?.durationSec) || 30;
+        const startedAt = Number(evt.payload?.startedAt) || Date.now();
+        const endAt = startedAt + durationSec * 1000;
+
+        if (timerStartRef.current !== startedAt) {
+          timerStartRef.current = startedAt;
+          setTimerActive(true);
+        }
+
+        if (timerIntervalRef.current) {
+          window.clearInterval(timerIntervalRef.current);
+        }
+
+        const tick = () => {
+          const now = Date.now();
+          const remainingMs = Math.max(0, endAt - now);
+          setRemaining(Math.ceil(remainingMs / 1000));
+          if (remainingMs <= 0) {
+            setTimerActive(false);
+            if (timerIntervalRef.current) {
+              window.clearInterval(timerIntervalRef.current);
+              timerIntervalRef.current = null;
+            }
+          }
+        };
+
+        tick();
+        timerIntervalRef.current = window.setInterval(tick, 200);
+      }
+
+      if (evt.type === 'stop') {
+        setTimerActive(false);
+        setRemaining(0);
+        if (timerIntervalRef.current) {
+          window.clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        timerStartRef.current = null;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (timerIntervalRef.current) {
+        window.clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [gameId]);
 
   if (!currentPlayer) {
     return (

@@ -27,6 +27,9 @@ import {
   stopTangTocTimer,
   createTangTocChannel,
   createVeDichSignalChannel,
+  createVeDichTimerChannel,
+  startVeDichTimer,
+  stopVeDichTimer,
 } from '@/services/gameService';
 import { supabase } from '@/integrations/supabase/client';
 import { RoundResultModal } from '@/components/game/RoundResultModal';
@@ -73,6 +76,9 @@ const GameHost = () => {
   
   // Về đích: Players who have signaled they have an answer
   const [veDichSignaledPlayers, setVeDichSignaledPlayers] = useState<Set<string>>(new Set());
+  const veDichTimerStartRef = useRef<number | null>(null);
+  const veDichTimerIntervalRef = useRef<number | null>(null);
+  const [veDichTimerRemaining, setVeDichTimerRemaining] = useState<number>(0);
 
   useEffect(() => {
     if (!code) {

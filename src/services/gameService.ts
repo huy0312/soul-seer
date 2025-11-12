@@ -1070,6 +1070,54 @@ export async function emitVeDichSignal(
   supabase.removeChannel(channel);
 }
 
+// Về đích: Timer channel for countdown
+export function createVeDichTimerChannel(
+  gameId: string,
+  onEvent: (event: { type: 'start' | 'stop'; payload?: any }) => void
+): () => void {
+  const channelName = `vedich_timer:${gameId}`;
+  const channel = supabase
+    .channel(channelName, { config: { broadcast: { self: true } } })
+    .on('broadcast', { event: 'timer:start' }, (payload) => {
+      const data = (payload as any)?.payload || payload;
+      onEvent({ type: 'start', payload: data });
+    })
+    .on('broadcast', { event: 'timer:stop' }, (payload) => {
+      onEvent({ type: 'stop', payload: {} });
+    })
+    .subscribe((status) => {
+      console.log('VeDich timer channel status:', status);
+    });
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function startVeDichTimer(gameId: string, durationSec: number = 30): Promise<void> {
+  const channelName = `vedich_timer:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  const startedAt = Date.now();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:start',
+    payload: { durationSec, startedAt },
+  });
+  supabase.removeChannel(channel);
+}
+
+export async function stopVeDichTimer(gameId: string): Promise<void> {
+  const channelName = `vedich_timer:${gameId}`;
+  const channel = supabase.channel(channelName, { config: { broadcast: { self: true } } });
+  await channel.subscribe();
+  await channel.send({
+    type: 'broadcast',
+    event: 'timer:stop',
+    payload: {},
+  });
+  supabase.removeChannel(channel);
+}
+
 // Question Sets Management
 export interface QuestionSet {
   id: string;
