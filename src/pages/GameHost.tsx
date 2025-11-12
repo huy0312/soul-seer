@@ -460,16 +460,21 @@ const GameHost = () => {
 
     const loadAnswersAndSubscribe = async () => {
       try {
-        const { answers } = await getAnswersForRound(game.id, 'tang_toc');
-        if (!cancelled && answers) {
-          const mapped = answers
-            .filter((ans) => ans.question_id === currentQuestion.id)
-            .map((ans) => ({
-              ...ans,
-              playerName: players.find((p) => p.id === ans.player_id)?.name,
-            }));
-          setTangTocAnswers(mapped);
-        }
+        const refreshAnswers = async () => {
+          const { answers } = await getAnswersForRound(game.id, 'tang_toc');
+          if (!cancelled && answers) {
+            const mapped = answers
+              .filter((ans) => ans.question_id === currentQuestion.id)
+              .map((ans) => ({
+                ...ans,
+                playerName: players.find((p) => p.id === ans.player_id)?.name,
+              }));
+            setTangTocAnswers(mapped);
+          }
+        };
+
+        // Load initial answers
+        await refreshAnswers();
 
         const channel = supabase
           .channel(channelName)
@@ -503,17 +508,38 @@ const GameHost = () => {
           .subscribe();
 
         tangTocAnswersChannelRef.current = channel;
+
+        // Polling fallback - refresh every 1 second to ensure we catch all answers
+        const pollingInterval = setInterval(() => {
+          if (!cancelled) {
+            refreshAnswers();
+          }
+        }, 1000);
+
+        return () => {
+          clearInterval(pollingInterval);
+        };
       } catch (error) {
         console.error('Unable to load Tăng tốc answers', error);
+        return () => {}; // Return empty cleanup function on error
       }
     };
 
-    loadAnswersAndSubscribe();
+    let pollingCleanup: (() => void) | null = null;
+    loadAnswersAndSubscribe().then((cleanup) => {
+      if (cleanup) {
+        pollingCleanup = cleanup;
+      }
+    });
+
     return () => {
       cancelled = true;
       if (tangTocAnswersChannelRef.current) {
         supabase.removeChannel(tangTocAnswersChannelRef.current);
         tangTocAnswersChannelRef.current = null;
+      }
+      if (pollingCleanup) {
+        pollingCleanup();
       }
     };
   }, [game?.id, game?.current_round, tangTocCurrentQuestionIndex, tangTocQuestions, players]);
@@ -545,6 +571,20 @@ const GameHost = () => {
           if (currentQuestion && currentQuestion.correct_answer) {
             setTangTocCorrectAnswer(currentQuestion.correct_answer);
             setShowTangTocAnswerModal(true);
+          }
+          // Refresh answers after timer ends to show all submitted answers
+          if (currentQuestion) {
+            getAnswersForRound(game.id, 'tang_toc').then(({ answers, error }) => {
+              if (!error && answers) {
+                const mapped = answers
+                  .filter((ans) => ans.question_id === currentQuestion.id)
+                  .map((ans) => ({
+                    ...ans,
+                    playerName: players.find((p) => p.id === ans.player_id)?.name,
+                  }));
+                setTangTocAnswers(mapped);
+              }
+            });
           }
         }, duration * 1000);
       } else if (evt.type === 'stop_timer') {
@@ -889,10 +929,13 @@ const GameHost = () => {
                           <Button
                             className="bg-yellow-600 hover:bg-yellow-700"
                             onClick={async () => {
-                              setTangTocAnswers([]);
+                              // Don't clear answers immediately - let them accumulate
+                              // Answers will be refreshed after timer ends
                               try {
                                 await startTangTocTimer(game.id, 20);
                                 playCountdownSound(20);
+                                // Clear answers only when starting new timer
+                                setTangTocAnswers([]);
                               } catch (error) {
                                 console.error('Unable to start timer', error);
                                 toast({
@@ -1016,6 +1059,16 @@ const GameHost = () => {
                           </div>
                         ))}
                       </div>
+                    </div>
+                    <div className="pt-4 border-t border-white/10">
+                      <Button
+                        onClick={() => navigate(`/game/results/${code}`)}
+                        className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold"
+                        size="lg"
+                      >
+                        <Crown className="h-5 w-5 mr-2" />
+                        Kết thúc chương trình
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

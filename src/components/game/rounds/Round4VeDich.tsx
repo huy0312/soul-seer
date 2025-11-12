@@ -20,16 +20,16 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
 }) => {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
 
+  // Initialize from props if available
+  useEffect(() => {
+    const playerFromProps = players.find((p) => p.id === currentPlayerId);
+    if (playerFromProps) {
+      setCurrentPlayer(playerFromProps);
+    }
+  }, [players, currentPlayerId]);
+
   // Subscribe to player score updates
   useEffect(() => {
-    const unsubscribe = subscribeToPlayers(gameId, (updatedPlayers) => {
-      const player = updatedPlayers.find((p) => p.id === currentPlayerId);
-      if (player) {
-        setCurrentPlayer(player);
-      }
-    });
-
-    // Also fetch initial player data
     const loadPlayer = async () => {
       const { data, error } = await supabase
         .from('players')
@@ -39,15 +39,38 @@ export const Round4VeDich: React.FC<Round4VeDichProps> = ({
       
       if (!error && data) {
         setCurrentPlayer(data);
+      } else {
+        // Fallback: try to find from props
+        const playerFromProps = players.find((p) => p.id === currentPlayerId);
+        if (playerFromProps) {
+          setCurrentPlayer(playerFromProps);
+        }
       }
     };
 
+    // Load immediately
     loadPlayer();
+
+    const unsubscribe = subscribeToPlayers(gameId, (updatedPlayers) => {
+      const player = updatedPlayers.find((p) => p.id === currentPlayerId);
+      if (player) {
+        setCurrentPlayer(player);
+      } else {
+        // If not found in updated list, try to reload
+        loadPlayer();
+      }
+    });
+
+    // Polling fallback - refresh every 2 seconds
+    const pollingInterval = setInterval(() => {
+      loadPlayer();
+    }, 2000);
 
     return () => {
       unsubscribe();
+      clearInterval(pollingInterval);
     };
-  }, [gameId, currentPlayerId]);
+  }, [gameId, currentPlayerId, players]);
 
   if (!currentPlayer) {
     return (
